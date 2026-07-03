@@ -143,7 +143,7 @@ export default async function EmployeeDashboardPage() {
         </div>
 
         {/* Quick Stats */}
-        <div className="md:col-span-2 grid grid-cols-2 gap-6">
+        <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
           {/* Leave Balance */}
           <div className="bg-white dark:bg-[#0F172A] rounded-3xl p-6 border border-[#E5E7EB] dark:border-[#1E293B] shadow-[0_2px_10px_rgba(0,0,0,0.04)] hover:border-gray-300 transition-colors group">
             <div className="flex items-center gap-3 mb-4">

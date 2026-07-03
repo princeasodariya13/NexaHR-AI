@@ -14,10 +14,15 @@ export default async function AdminLayout({
     redirect("/login");
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    select: { role: true }
-  });
+  let dbUser = null;
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { role: true }
+    });
+  } catch (err) {
+    console.warn("Prisma connection pool timeout in admin layout. Suppressing crash.");
+  }
 
   // Redirect employees trying to access admin pages.
   // princeasodariya13@gmail.com can bypass this for testing.

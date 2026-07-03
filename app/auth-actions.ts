@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import prisma from '@/lib/prisma'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -25,25 +26,40 @@ export async function login(formData: FormData) {
     redirect(`/login?type=${loginType}&error=${encodeURIComponent(error.message)}`)
   }
 
-  // Get user role from Prisma to direct them to the correct dashboard
   let redirectUrl = loginType === 'employee' ? '/dashboard/employee' : '/dashboard/admin';
   
   try {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { PrismaClient } = await import('@prisma/client')
-      const prisma = new PrismaClient()
       const dbUser = await prisma.user.findUnique({
         where: { id: user.id },
         select: { role: true }
       })
       
-      if (dbUser?.role === 'EMPLOYEE') {
-        redirectUrl = '/dashboard/employee';
+      const isAdminRole = dbUser?.role === 'SUPER_ADMIN' || dbUser?.role === 'COMPANY_ADMIN' || dbUser?.role === 'HR_MANAGER';
+      const isEmployeeRole = dbUser?.role === 'EMPLOYEE';
+
+      // Strict Validation: Ensure login type matches actual role
+      if (loginType === 'admin' && !isAdminRole) {
+        await supabase.auth.signOut();
+        redirect(`/login?type=${loginType}&error=${encodeURIComponent("Access denied. Please use the Employee login section.")}`);
       }
-      await prisma.$disconnect()
+      
+      if (loginType === 'employee' && !isEmployeeRole) {
+        await supabase.auth.signOut();
+        redirect(`/login?type=${loginType}&error=${encodeURIComponent("Access denied. Please use the Company Admin login section.")}`);
+      }
+      
+      if (isEmployeeRole) {
+        redirectUrl = '/dashboard/employee';
+      } else if (isAdminRole) {
+        redirectUrl = '/dashboard/admin';
+      }
     }
   } catch (e) {
+    if (e instanceof Error && e.message === "NEXT_REDIRECT") {
+      throw e; // Required for Next.js redirect to work inside a try-catch
+    }
     console.error("Error fetching role during login redirect", e)
   }
 
@@ -76,9 +92,6 @@ export async function signup(formData: FormData) {
 
   // Create Company and User in Prisma
   if (authData.user) {
-    const { PrismaClient } = await import('@prisma/client')
-    const prisma = new PrismaClient()
-    
     try {
       // Check if user already exists to avoid duplicates
       const existingUser = await prisma.user.findUnique({ where: { id: authData.user.id } })
@@ -104,8 +117,6 @@ export async function signup(formData: FormData) {
       }
     } catch (e) {
       console.error("Prisma error during signup", e)
-    } finally {
-      await prisma.$disconnect()
     }
   }
 
@@ -142,9 +153,6 @@ export async function employeeSignup(formData: FormData) {
   }
 
   if (authData.user) {
-    const { PrismaClient } = await import('@prisma/client')
-    const prisma = new PrismaClient()
-    
     try {
       // Find ANY company to attach this employee to (for demo purposes)
       const defaultCompany = await prisma.company.findFirst()
@@ -180,8 +188,6 @@ export async function employeeSignup(formData: FormData) {
       }
     } catch (e) {
       console.error("Prisma error during employee signup", e)
-    } finally {
-      await prisma.$disconnect()
     }
   }
 

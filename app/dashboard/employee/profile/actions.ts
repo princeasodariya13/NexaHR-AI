@@ -9,16 +9,22 @@ export async function updateProfile(formData: FormData) {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return { error: "Unauthorized" };
   }
 
-  const dbUser = await prisma.user.findUnique({
-    where: { id: user.id },
-    include: { employee: true }
-  });
+  let dbUser = null;
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { employee: true }
+    });
+  } catch (err) {
+    console.error("Prisma error in updateProfile:", err);
+    return { error: "Database connection error. Try again later." };
+  }
 
   if (!dbUser || !dbUser.employee) {
-    throw new Error("Employee record not found");
+    return { error: "Employee record not found" };
   }
 
   const firstName = formData.get("firstName") as string;
@@ -28,7 +34,7 @@ export async function updateProfile(formData: FormData) {
   const phone = formData.get("phone") as string;
 
   if (!firstName || !lastName) {
-    throw new Error("First name and Last name are required");
+    return { error: "First name and Last name are required" };
   }
 
   try {

@@ -48,7 +48,7 @@ export function Sidebar({ role = "SUPER_ADMIN" }: { role?: string }) {
   const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
 
   return (
-    <aside className="w-64 bg-white dark:bg-[#0F172A] border-r border-[#E5E7EB] dark:border-[#1E293B] flex flex-col h-screen sticky top-0 transition-colors duration-200">
+    <aside className="hidden md:flex w-64 bg-white dark:bg-[#0F172A] border-r border-[#E5E7EB] dark:border-[#1E293B] flex-col h-screen sticky top-0 transition-colors duration-200 shrink-0">
       <div className="h-16 flex items-center px-6 border-b border-[#E5E7EB] dark:border-[#1E293B]">
         <Link href="/" className="flex items-center gap-2 group">
           <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0F172A] dark:bg-[#F8FAFC] shadow-sm transition-colors">

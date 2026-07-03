@@ -9,7 +9,9 @@ import {
   Laptop, 
   HeartHandshake,
   Download,
-  Calendar
+  Calendar,
+  Eye,
+  Archive
 } from "lucide-react";
 
 export default async function EmployeePoliciesPage() {
@@ -90,13 +92,17 @@ export default async function EmployeePoliciesPage() {
 
   return (
     <div className="max-w-6xl mx-auto space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
             Company Policies <Shield className="w-6 h-6 text-emerald-600" />
           </h1>
           <p className="text-gray-500 mt-1">Review official corporate guidelines, procedures, and rules.</p>
         </div>
+        <button className="bg-white dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] text-[#111827] dark:text-[#F3F4F6] hover:bg-[#F8FAFC] dark:hover:bg-[#334155] shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2 w-full md:w-auto">
+          <Archive className="w-4 h-4 text-emerald-600" />
+          Download All Policies (ZIP)
+        </button>
       </div>
 
       <div className="bg-white dark:bg-[#0F172A] rounded-3xl p-6 border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm">
@@ -106,7 +112,7 @@ export default async function EmployeePoliciesPage() {
           <input 
             type="text" 
             placeholder="Search policies..."
-            className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#0F172A] border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#1E293B] focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-white focus:border-emerald-500 transition-all outline-none"
+            className="w-full pl-11 pr-4 py-3 bg-gray-50 dark:bg-[#1E293B] border border-gray-200 dark:border-gray-700 rounded-xl text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#1E293B] focus:ring-2 focus:ring-emerald-500/20 dark:focus:ring-white focus:border-emerald-500 transition-all outline-none"
           />
         </div>
 
@@ -121,26 +127,32 @@ export default async function EmployeePoliciesPage() {
                   <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gray-100 dark:bg-[#1E293B] text-gray-600 dark:text-gray-400 mb-1.5">
                     {policy.category}
                   </div>
-                  <h3 className="font-bold text-gray-900 text-lg leading-tight group-hover:text-emerald-700 transition-colors">
+                  <h3 className="font-bold text-gray-900 dark:text-[#F3F4F6] text-lg leading-tight group-hover:text-emerald-700 dark:group-hover:text-emerald-500 transition-colors">
                     {policy.title}
                   </h3>
                 </div>
               </div>
               
-              <p className="text-sm text-gray-500 leading-relaxed flex-1">
+              <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1">
                 {policy.description}
               </p>
 
-              <div className="mt-6 pt-5 border-t border-gray-100 flex items-center justify-between">
+              <div className="mt-6 pt-5 border-t border-gray-100 dark:border-[#1E293B] flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-medium text-gray-400">
                   <Calendar className="w-4 h-4" />
                   Effective: {new Date(policy.effectiveDate).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}
                 </div>
                 
-                <button className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 hover:text-emerald-700 transition-colors">
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                </button>
+                <div className="flex items-center gap-3">
+                  <button className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                    <Eye className="w-4 h-4" />
+                    View
+                  </button>
+                  <button className="flex items-center gap-1.5 text-sm font-semibold text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors">
+                    <Download className="w-4 h-4" />
+                    Download
+                  </button>
+                </div>
               </div>
             </div>
           ))}

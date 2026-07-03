@@ -25,6 +25,8 @@ export function AttendanceClient({
   const [checkedIn, setCheckedIn] = useState(isInitiallyCheckedIn);
   const [mounted, setMounted] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   useEffect(() => {
     setMounted(true);
@@ -54,6 +56,13 @@ export function AttendanceClient({
       }
     });
   };
+
+  const filteredLogs = initialLogs.filter(log => {
+    const matchesSearch = log.employeeName.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          log.role.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesStatus = statusFilter === "ALL" || log.status.toUpperCase() === statusFilter;
+    return matchesSearch && matchesStatus;
+  });
 
   if (!mounted) return null;
 
@@ -109,18 +118,27 @@ export function AttendanceClient({
         <div className="lg:col-span-2 bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-[#E5E7EB] dark:border-[#1E293B] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-bold text-[#111827] dark:text-[#F3F4F6]">Today's Logs</h3>
-            <div className="flex items-center gap-2">
-              <div className="relative">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <div className="relative flex-1 sm:w-64">
                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF] dark:text-[#6B7280]" />
                 <input 
                   type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search logs..."
-                  className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#1E293B] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20"
+                  className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#1E293B] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 dark:text-white"
                 />
               </div>
-              <button className="p-2 border border-[#E5E7EB] dark:border-[#1E293B] rounded-lg text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] hover:text-[#111827] dark:text-[#F3F4F6] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 dark:bg-[#1E293B]">
-                <Filter className="w-4 h-4" />
-              </button>
+              <select 
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="py-2 px-3 border border-[#E5E7EB] dark:border-[#1E293B] rounded-lg text-sm text-[#111827] dark:text-white bg-[#F8FAFC] dark:bg-[#1E293B] focus:outline-none focus:ring-2 focus:ring-[#111827]/20"
+              >
+                <option value="ALL">All Status</option>
+                <option value="PRESENT">Present</option>
+                <option value="LATE">Late</option>
+                <option value="ABSENT">Absent</option>
+              </select>
             </div>
           </div>
           
@@ -135,7 +153,7 @@ export function AttendanceClient({
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#E5E7EB] dark:divide-[#1E293B]">
-                {initialLogs.map((log, i) => (
+                {filteredLogs.map((log, i) => (
                   <tr key={log.id} className="hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 dark:bg-[#1E293B] transition-colors">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

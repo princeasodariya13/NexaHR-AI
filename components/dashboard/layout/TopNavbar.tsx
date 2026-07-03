@@ -1,22 +1,78 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Bell, Search, User, Sun, Moon } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { 
+  Bell, Search, User, Sun, Moon, Menu, X,
+  LayoutDashboard, Users, CalendarCheck, CalendarOff, 
+  Banknote, Briefcase, FileText, Settings, Bot, 
+  Target, Shield
+} from "lucide-react";
 import { logout } from "@/app/auth-actions";
+import { cn } from "@/lib/utils";
+
+const ADMIN_NAV_ITEMS = [
+  { name: "Overview", href: "/dashboard/admin", icon: LayoutDashboard },
+  { name: "Employees", href: "/dashboard/admin/employees", icon: Users },
+  { name: "Attendance", href: "/dashboard/admin/attendance", icon: CalendarCheck },
+  { name: "Leaves", href: "/dashboard/admin/leaves", icon: CalendarOff },
+  { name: "Payroll", href: "/dashboard/admin/payroll", icon: Banknote },
+  { name: "Recruitment", href: "/dashboard/admin/recruitment", icon: Briefcase },
+  { name: "Documents", href: "/dashboard/admin/documents", icon: FileText },
+  { name: "AI Assistant", href: "/dashboard/admin/ai-assistant", icon: Bot },
+];
+
+const EMPLOYEE_NAV_ITEMS = [
+  { name: "My Dashboard", href: "/dashboard/employee", icon: LayoutDashboard },
+  { name: "My Profile", href: "/dashboard/employee/profile", icon: User },
+  { name: "Attendance", href: "/dashboard/employee/attendance", icon: CalendarCheck },
+  { name: "Leaves", href: "/dashboard/employee/leaves", icon: CalendarOff },
+  { name: "Payslips", href: "/dashboard/employee/payroll", icon: Banknote },
+  { name: "Documents", href: "/dashboard/employee/documents", icon: FileText },
+  { name: "Performance", href: "/dashboard/employee/performance", icon: Target },
+  { name: "Policies", href: "/dashboard/employee/policies", icon: Shield },
+  { name: "AI HR", href: "/dashboard/employee/ai-assistant", icon: Bot },
+];
 
 export function TopNavbar({ 
   userEmail, 
-  role = "EMPLOYEE" 
+  role = "EMPLOYEE",
+  userName = ""
 }: { 
   userEmail: string; 
   role?: string;
+  userName?: string;
 }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [hasUnread, setHasUnread] = useState(true);
+  const pathname = usePathname();
+  const notificationsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
     setTheme(isDark ? "dark" : "light");
   }, []);
+
+  // Close notifications on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const toggleTheme = () => {
     const nextTheme = theme === "light" ? "dark" : "light";
@@ -30,7 +86,17 @@ export function TopNavbar({
     }
   };
 
-  // Human readable role
+  const getInitials = (name: string) => {
+    if (!name) return "U";
+    const parts = name.trim().split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  const initials = getInitials(userName);
+
   const formattedRole = role === "SUPER_ADMIN" 
     ? "Company Admin" 
     : role === "COMPANY_ADMIN" 
@@ -39,52 +105,215 @@ export function TopNavbar({
     ? "HR Manager" 
     : "Employee";
 
+  const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
   return (
-    <header className="h-16 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-6 sticky top-0 z-10 transition-colors duration-200">
-      
-      <div className="flex-1 max-w-md relative hidden md:block">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
-        <input 
-          type="text"
-          placeholder="Search employees, documents, or actions..."
-          className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] rounded-lg text-sm text-[#111827] dark:text-[#F3F4F6] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all"
-        />
-      </div>
-
-      <div className="flex items-center gap-4 ml-auto">
-        {/* Theme Toggle Button */}
-        <button 
-          onClick={toggleTheme}
-          className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-full transition-all duration-200"
-          title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
-        >
-          {theme === "light" ? (
-            <Moon className="w-5 h-5 text-[#475569]" />
-          ) : (
-            <Sun className="w-5 h-5 text-amber-400" />
-          )}
-        </button>
-
-        <button className="relative p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-full transition-colors">
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0F172A]"></span>
-        </button>
+    <>
+      <header className="h-16 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-4 md:px-6 sticky top-0 z-10 transition-colors duration-200">
         
-        <div className="h-8 w-px bg-[#E5E7EB] dark:bg-[#1E293B] mx-2"></div>
-
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col items-end hidden md:flex">
-            <span className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6]">{formattedRole}</span>
-            <span className="text-xs text-[#6B7280] dark:text-[#9CA3AF]">{userEmail}</span>
-          </div>
-          <div className="w-9 h-9 rounded-full bg-[#111827] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] flex items-center justify-center text-white dark:text-[#F3F4F6] cursor-pointer hover:ring-2 hover:ring-[#E5E7EB] dark:hover:ring-[#334155] transition-all">
-            <User className="w-4 h-4" />
-          </div>
-          <form action={logout}>
-            <button className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline">Logout</button>
-          </form>
+        <div className="flex items-center gap-3 md:hidden">
+          <button 
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-lg transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-[#0F172A] dark:bg-[#F8FAFC]">
+              <Bot className="w-4 h-4 text-white dark:text-[#0F172A]" />
+            </div>
+            <span className="text-lg font-bold tracking-tight text-[#111827] dark:text-[#F3F4F6]">
+              NexaHR
+            </span>
+          </Link>
         </div>
-      </div>
-    </header>
+
+        <div className="flex-1 max-w-md relative hidden md:block">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
+          <input 
+            type="text"
+            placeholder="Search employees, documents, or actions..."
+            className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] rounded-lg text-sm text-[#111827] dark:text-[#F3F4F6] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 md:gap-4 ml-auto">
+          <button 
+            onClick={toggleTheme}
+            className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-full transition-all duration-200"
+            title={theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"}
+          >
+            {theme === "light" ? (
+              <Moon className="w-5 h-5 text-[#475569]" />
+            ) : (
+              <Sun className="w-5 h-5 text-amber-400" />
+            )}
+          </button>
+
+          <div className="relative" ref={notificationsRef}>
+            <button 
+              onClick={() => setNotificationsOpen(!notificationsOpen)}
+              className="relative p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-full transition-colors hidden md:block"
+            >
+              <Bell className="w-5 h-5" />
+              {hasUnread && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white dark:border-[#0F172A]"></span>
+              )}
+            </button>
+
+            {/* Notifications Dropdown */}
+            {notificationsOpen && (
+              <div className="absolute right-0 mt-2 w-80 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] shadow-xl rounded-xl z-50 overflow-hidden">
+                <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] flex justify-between items-center">
+                  <h3 className="font-bold text-[#111827] dark:text-[#F3F4F6]">Notifications</h3>
+                  {hasUnread && (
+                    <button 
+                      onClick={() => setHasUnread(false)} 
+                      className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                    >
+                      Mark all read
+                    </button>
+                  )}
+                </div>
+                <div className="max-h-80 overflow-y-auto">
+                  {!hasUnread ? (
+                    <div className="p-8 text-center text-[#6B7280] dark:text-[#9CA3AF]">
+                      <Bell className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                      <p className="text-sm">You are all caught up!</p>
+                    </div>
+                  ) : role === "EMPLOYEE" ? (
+                    <>
+                      <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
+                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> Leave Approved
+                        </p>
+                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Your leave request for next Friday has been approved.</p>
+                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">2 hours ago</p>
+                      </div>
+                      <div className="p-4 hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
+                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> Payroll Processed
+                        </p>
+                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Your salary slip for this month is ready to view.</p>
+                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">1 day ago</p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
+                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> New Leave Request
+                        </p>
+                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Sarah Jenkins has requested 2 days of sick leave.</p>
+                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">10 mins ago</p>
+                      </div>
+                      <div className="p-4 hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
+                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> System Update
+                        </p>
+                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">NexaHR AI Copilot has been updated to v2.0.</p>
+                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">3 hours ago</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="h-8 w-px bg-[#E5E7EB] dark:bg-[#1E293B] mx-1 md:mx-2 hidden md:block"></div>
+
+          <div className="flex items-center gap-3">
+            <div className="flex flex-col items-end hidden md:flex">
+              <span className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6]">{formattedRole}</span>
+              <span className="text-xs text-[#6B7280] dark:text-[#9CA3AF]">{userEmail}</span>
+            </div>
+            <Link 
+              href={role === "EMPLOYEE" ? "/dashboard/employee/profile" : "/dashboard/admin/settings"}
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-[#111827] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] flex items-center justify-center text-white dark:text-[#F3F4F6] cursor-pointer hover:ring-2 hover:ring-[#E5E7EB] dark:hover:ring-[#334155] transition-all"
+            >
+              {userName ? (
+                <span className="text-xs font-bold">{initials}</span>
+              ) : (
+                <User className="w-4 h-4 md:w-4 md:h-4" />
+              )}
+            </Link>
+            <form action={logout}>
+              <button className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline">Logout</button>
+            </form>
+          </div>
+        </div>
+      </header>
+
+      {/* Mobile Navigation Overlay */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden">
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity" 
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          
+          {/* Sidebar Drawer */}
+          <div className="relative w-64 max-w-sm bg-white dark:bg-[#0F172A] h-full flex flex-col shadow-2xl transition-transform animate-in slide-in-from-left">
+            <div className="h-16 flex items-center justify-between px-4 border-b border-[#E5E7EB] dark:border-[#1E293B]">
+              <Link href="/" className="flex items-center gap-2 group">
+                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#0F172A] dark:bg-[#F8FAFC]">
+                  <Bot className="w-5 h-5 text-white dark:text-[#0F172A]" />
+                </div>
+                <span className="text-xl font-bold text-[#111827] dark:text-[#F3F4F6]">
+                  NexaHR
+                </span>
+              </Link>
+              <button 
+                onClick={() => setMobileMenuOpen(false)}
+                className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F3F4F6] dark:hover:bg-[#1E293B] rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+              {navItems.map((item) => {
+                const isActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/dashboard/employee" && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                      isActive 
+                        ? "bg-[#F3F4F6] dark:bg-[#1E293B] text-[#111827] dark:text-[#F3F4F6]" 
+                        : "text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/40"
+                    )}
+                  >
+                    <item.icon className={cn("w-5 h-5", isActive ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#9CA3AF] dark:text-[#6B7280]")} />
+                    {item.name}
+                  </Link>
+                );
+              })}
+            </nav>
+            
+            <div className="p-4 border-t border-[#E5E7EB] dark:border-[#1E293B]">
+              <Link
+                href={role === "EMPLOYEE" ? "/dashboard/employee/settings" : "/dashboard/admin/settings"}
+                onClick={() => setMobileMenuOpen(false)}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium transition-all duration-200",
+                  pathname.endsWith("/settings")
+                    ? "bg-[#F3F4F6] dark:bg-[#1E293B] text-[#111827] dark:text-[#F3F4F6]"
+                    : "text-[#6B7280] dark:text-[#9CA3AF] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/40"
+                )}
+              >
+                <Settings className={cn("w-5 h-5", pathname.endsWith("/settings") ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#9CA3AF] dark:text-[#6B7280]")} />
+                Settings
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

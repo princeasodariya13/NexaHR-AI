@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MoreHorizontal, Edit2, UserX, UserCheck, Shield, X, Loader2, Search, Filter, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { updateEmployeeRole, updateEmployeeStatus, deleteEmployee } from "@/app/dashboard/admin/employees/actions";
@@ -26,6 +26,20 @@ interface EmployeeData {
 
 export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: EmployeeData[] }) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
+  const tableRef = React.useRef<HTMLDivElement>(null);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (tableRef.current && !tableRef.current.contains(event.target as Node)) {
+        setActiveMenu(null);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   // Modal states
   const [selectedEmp, setSelectedEmp] = useState<EmployeeData | null>(null);
@@ -37,14 +51,24 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
   const [isLoading, setIsLoading] = useState(false);
   const [newRole, setNewRole] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-  const filteredEmployees = employees.filter(emp => {
+  const [localEmployees, setLocalEmployees] = useState<EmployeeData[]>(employees);
+
+  useEffect(() => {
+    setLocalEmployees(employees);
+  }, [employees]);
+
+  const filteredEmployees = localEmployees.filter(emp => {
     const q = searchQuery.toLowerCase();
-    return emp.name.toLowerCase().includes(q) ||
+    const matchesSearch = emp.name.toLowerCase().includes(q) ||
       emp.email.toLowerCase().includes(q) ||
       emp.code.toLowerCase().includes(q) ||
       emp.role.toLowerCase().includes(q) ||
       emp.department.toLowerCase().includes(q);
+      
+    const matchesStatus = statusFilter === "ALL" || emp.status === statusFilter;
+    return matchesSearch && matchesStatus;
   });
 
   const handleOpenRoleModal = (emp: EmployeeData) => {
@@ -69,6 +93,16 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
   const handleUpdateRole = async () => {
     if (!selectedEmp) return;
     setIsLoading(true);
+    
+    if (selectedEmp.id.length < 10) {
+      setTimeout(() => {
+        setLocalEmployees(prev => prev.map(emp => emp.id === selectedEmp.id ? { ...emp, role: newRole } : emp));
+        setIsLoading(false);
+        setIsRoleModalOpen(false);
+      }, 500);
+      return;
+    }
+
     const res = await updateEmployeeRole(selectedEmp.id, newRole);
     setIsLoading(false);
     if (res?.error) alert(res.error);
@@ -78,6 +112,16 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
   const handleUpdateStatus = async (status: string) => {
     if (!selectedEmp) return;
     setIsLoading(true);
+
+    if (selectedEmp.id.length < 10) {
+      setTimeout(() => {
+        setLocalEmployees(prev => prev.map(emp => emp.id === selectedEmp.id ? { ...emp, status } : emp));
+        setIsLoading(false);
+        setIsDeactivateModalOpen(false);
+      }, 500);
+      return;
+    }
+
     const res = await updateEmployeeStatus(selectedEmp.id, status);
     setIsLoading(false);
     if (res?.error) alert(res.error);
@@ -87,12 +131,21 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
   const handleDelete = async () => {
     if (!selectedEmp) return;
     setIsLoading(true);
+
+    if (selectedEmp.id.length < 10) {
+      setTimeout(() => {
+        setLocalEmployees(prev => prev.filter(emp => emp.id !== selectedEmp.id));
+        setIsLoading(false);
+        setIsDeleteModalOpen(false);
+      }, 500);
+      return;
+    }
+
     const res = await deleteEmployee(selectedEmp.id);
     setIsLoading(false);
     if (res?.error) alert(res.error);
     else {
       setIsDeleteModalOpen(false);
-      // Optional: show a success toast here
     }
   };
 
@@ -106,16 +159,22 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by name, role, email, or ID..."
-            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all shadow-sm"
+            className="w-full pl-9 pr-4 py-2.5 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all shadow-sm dark:text-white"
           />
         </div>
-        <button className="bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] text-[#111827] dark:text-[#F3F4F6] rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 dark:bg-[#1E293B] transition-all flex items-center justify-center gap-2 shadow-sm">
-          <Filter className="w-4 h-4" />
-          Filters
-        </button>
+        <select 
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] text-[#111827] dark:text-[#F3F4F6] rounded-xl px-4 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-[#111827]/20 transition-all shadow-sm"
+        >
+          <option value="ALL">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="ON_LEAVE">On Leave</option>
+          <option value="INACTIVE">Inactive</option>
+        </select>
       </div>
 
-      <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm overflow-hidden">
+      <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm overflow-hidden" ref={tableRef}>
         <div className="overflow-x-auto">
           <table className="w-full text-sm text-left">
             <thead className="bg-[#F8FAFC] dark:bg-[#1E293B] border-b border-[#E5E7EB] dark:border-[#1E293B] text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280]">
@@ -232,12 +291,24 @@ export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: Emp
                 <p className="text-sm text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280]">Update the job title for <strong>{selectedEmp.name}</strong>.</p>
                 <div>
                   <label className="block text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] mb-1">New Job Title</label>
-                  <input
-                    type="text"
+                  <select
                     value={newRole}
                     onChange={(e) => setNewRole(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all shadow-sm"
-                  />
+                    className="w-full px-4 py-2.5 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all shadow-sm text-[#111827] dark:text-[#F3F4F6]"
+                  >
+                    <option value="" disabled>Select a new role...</option>
+                    <option value="Software Engineer">Software Engineer</option>
+                    <option value="Senior Engineer">Senior Engineer</option>
+                    <option value="DevOps Engineer">DevOps Engineer</option>
+                    <option value="Product Manager">Product Manager</option>
+                    <option value="UX Designer">UX Designer</option>
+                    <option value="HR Manager">HR Manager</option>
+                    <option value="Sales Executive">Sales Executive</option>
+                    <option value="Marketing Specialist">Marketing Specialist</option>
+                    <option value="Customer Support">Customer Support</option>
+                    <option value="Finance Analyst">Finance Analyst</option>
+                    <option value="Administrator">Administrator</option>
+                  </select>
                 </div>
               </div>
               <div className="p-6 border-t border-[#E5E7EB] dark:border-[#1E293B] bg-[#F8FAFC] dark:bg-[#1E293B] flex justify-end gap-3">

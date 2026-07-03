@@ -19,18 +19,31 @@ export default async function DashboardLayout({
 
   let role = "EMPLOYEE";
   let companyId = undefined;
+  let userName = "";
   
   try {
     const dbUser = await prisma.user.findUnique({
       where: { id: data.user.id },
-      select: { role: true, companyId: true }
+      select: { 
+        role: true, 
+        companyId: true,
+        employee: { select: { firstName: true, lastName: true } }
+      }
     });
     if (dbUser) {
       role = dbUser.role;
       companyId = dbUser.companyId;
+      if (dbUser.employee) {
+        userName = `${dbUser.employee.firstName} ${dbUser.employee.lastName}`;
+      }
     }
   } catch (e) {
     console.warn("DB offline, defaulting to EMPLOYEE role");
+  }
+
+  // Fallback to email username if no employee record exists
+  if (!userName && data.user.email) {
+    userName = data.user.email.split('@')[0].replace(/[._-]/g, ' ');
   }
 
   return (
@@ -39,7 +52,7 @@ export default async function DashboardLayout({
       <Sidebar role={role} />
       
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <TopNavbar userEmail={data.user.email || ""} role={role} />
+        <TopNavbar userEmail={data.user.email || ""} role={role} userName={userName} />
         
         <main className="flex-1 p-6 overflow-y-auto">
           {children}

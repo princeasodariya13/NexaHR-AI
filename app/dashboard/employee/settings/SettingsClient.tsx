@@ -75,43 +75,7 @@ export function SettingsClient({ employee }: EmployeeSettingsProps) {
         </div>
       )}
 
-      {/* Theme Preference Settings */}
-      <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 space-y-4 transition-all">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400">
-            {theme === "light" ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-[#111827] dark:text-[#F3F4F6]">Theme Preference</h3>
-            <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF]">Customize how NexaHR AI looks on your device.</p>
-          </div>
-        </div>
 
-        <div className="grid grid-cols-2 gap-4 pt-2">
-          <button
-            onClick={() => handleToggleTheme("light")}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all ${
-              theme === "light"
-                ? "border-[#111827] dark:border-[#F3F4F6] bg-[#F8FAFC] dark:bg-[#1E293B] text-[#111827] dark:text-[#F3F4F6]"
-                : "border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/30 text-[#6B7280]"
-            }`}
-          >
-            <Sun className="w-4 h-4 text-amber-500" />
-            Light Mode
-          </button>
-          <button
-            onClick={() => handleToggleTheme("dark")}
-            className={`flex items-center justify-center gap-2 p-3 rounded-xl border text-sm font-semibold transition-all ${
-              theme === "dark"
-                ? "border-[#F3F4F6] dark:border-[#F3F4F6] bg-[#1E293B] text-[#F3F4F6]"
-                : "border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/30 text-[#6B7280]"
-            }`}
-          >
-            <Moon className="w-4 h-4 text-indigo-400" />
-            Dark Mode
-          </button>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Personal Details */}
