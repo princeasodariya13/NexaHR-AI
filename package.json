@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "generate": "prisma generate",
+    "postinstall": "node -e \"const { existsSync } = require('fs'); const path = require('path'); const p = path.join(process.cwd(), 'node_modules', '.prisma', 'client'); if (existsSync(path.join(p, 'query_engine-windows.dll.node')) || existsSync(path.join(p, 'libquery_engine-rhel-openssl-3.0.x.so.node')) || existsSync(path.join(p, 'libquery_engine-debian-openssl-3.0.x.so.node'))) process.exit(0); require('child_process').execSync('npx prisma generate', { stdio: 'inherit' });\""
+  },
+  "engines": {
+    "node": "20.x"
   },
   "dependencies": {
     "@prisma/client": "^6.4.1",
