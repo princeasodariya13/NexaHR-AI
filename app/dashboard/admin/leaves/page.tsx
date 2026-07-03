@@ -1,0 +1,76 @@
+import { LeavesClient, LeaveRequestData } from "./LeavesClient";
+import prisma from "@/lib/prisma";
+import { createClient } from "@/utils/supabase/server";
+import { redirect } from "next/navigation";
+import { format } from "date-fns";
+
+export default async function LeavesPage() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect('/login');
+  }
+
+  // Get user's company
+  let dbUser = null;
+  let leavesData: LeaveRequestData[] = [];
+  let stats = { pending: 0, approved: 0, onLeaveToday: 0 };
+
+  try {
+    dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { companyId: true }
+    });
+
+    const companyId = dbUser?.companyId;
+
+    if (companyId) {
+      const rawLeaves = await prisma.leaveRequest.findMany({
+        where: { companyId },
+        include: { employee: { include: { department: true } } },
+        orderBy: { createdAt: 'desc' }
+      });
+
+      leavesData = rawLeaves.map(leave => {
+        const start = new Date(leave.startDate);
+        const end = new Date(leave.endDate);
+        const diffTime = Math.abs(end.getTime() - start.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // inclusive
+
+        return {
+          id: leave.id,
+          employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`,
+          initials: `${leave.employee.firstName[0]}${leave.employee.lastName[0]}`,
+          department: leave.employee.department?.name || 'General',
+          type: leave.leaveTypeId || 'GENERAL',
+          durationString: `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`,
+          days: diffDays,
+          reason: leave.reason,
+          status: leave.status,
+        };
+      });
+
+      stats.pending = rawLeaves.filter(l => l.status === 'PENDING').length;
+      stats.approved = rawLeaves.filter(l => l.status === 'APPROVED').length;
+      
+      // Calculate on leave today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      stats.onLeaveToday = rawLeaves.filter(l => 
+        l.status === 'APPROVED' && 
+        new Date(l.startDate) <= today && 
+        new Date(l.endDate) >= today
+      ).length;
+    }
+  } catch (error) {
+    console.warn("Prisma Database connection failed in Leaves:. Next.js Dev overlay suppressed.");
+  }
+
+  // Fallback demo data if DB is empty
+  if (leavesData.length === 0) {
+    // Rely strictly on real database data and show empty state
+  }
+
+  return <LeavesClient stats={stats} leaves={leavesData} />;
+}

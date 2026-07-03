@@ -1,0 +1,464 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ------------------------------------------------------
+// ENUMS
+// ------------------------------------------------------
+
+enum UserRole {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  HR_MANAGER
+  DEPT_MANAGER
+  EMPLOYEE
+  RECRUITER
+  PAYROLL_MANAGER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  PROBATION
+  NOTICE_PERIOD
+  TERMINATED
+  RESIGNED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  HALF_DAY
+  WORK_FROM_HOME
+  HOLIDAY
+  LEAVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum PayrollStatus {
+  DRAFT
+  PROCESSING
+  APPROVED
+  PAID
+  FAILED
+}
+
+enum CandidateStatus {
+  APPLIED
+  SHORTLISTED
+  INTERVIEW_SCHEDULED
+  INTERVIEWED
+  SELECTED
+  REJECTED
+  OFFERED
+  HIRED
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum DocumentType {
+  IDENTITY
+  CONTRACT
+  POLICY
+  CERTIFICATE
+  OTHER
+}
+
+enum NotificationType {
+  LEAVE_REQUEST
+  PAYROLL_UPDATE
+  SYSTEM_ALERT
+  ANNOUNCEMENT
+  PERFORMANCE_REVIEW
+  RECRUITMENT
+}
+
+enum AIActionType {
+  CHAT_QUERY
+  RESUME_PARSING
+  CANDIDATE_MATCH
+  DOCUMENT_GENERATION
+  POLICY_SEARCH
+}
+
+// ------------------------------------------------------
+// TENANT / COMPANY MANAGEMENT
+// ------------------------------------------------------
+
+model Company {
+  id             String    @id @default(uuid())
+  name           String
+  logoUrl        String?
+  website        String?
+  industry       String?
+  employeeCount  Int       @default(0)
+  timezone       String    @default("UTC")
+  currency       String    @default("USD")
+  subscriptionId String?
+  isActive       Boolean   @default(true)
+  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  deletedAt      DateTime?
+
+  // Relations
+  users          User[]
+  departments    Department[]
+  employees      Employee[]
+  jobs           Job[]
+  leaves         LeaveRequest[]
+  payrolls       PayrollRun[]
+  auditLogs      AuditLog[]
+  policies       Policy[]
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  companyId   String
+  name        String
+  description String?
+  managerId   String?  // References Employee.id
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company     Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employees   Employee[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+}
+
+// ------------------------------------------------------
+// AUTHENTICATION & USERS
+// ------------------------------------------------------
+
+model User {
+  id            String    @id @default(uuid()) // Supabase Auth UID maps here
+  email         String    @unique
+  companyId     String
+  role          UserRole  @default(EMPLOYEE)
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee      Employee?
+
+  @@index([companyId])
+  @@index([email])
+}
+
+// ------------------------------------------------------
+// EMPLOYEE MANAGEMENT
+// ------------------------------------------------------
+
+model Employee {
+  id               String         @id @default(uuid())
+  companyId        String
+  userId           String         @unique
+  departmentId     String?
+  
+  employeeCode     String
+  firstName        String
+  lastName         String
+  designation      String?
+  joiningDate      DateTime
+  status           EmployeeStatus @default(ACTIVE)
+  
+  // Contact
+  workEmail        String
+  personalEmail    String?
+  phone            String?
+  
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  deletedAt        DateTime?
+
+  company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  department       Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  
+  attendances      Attendance[]
+  leaveRequests    LeaveRequest[]
+  payslips         Payslip[]
+  documents        Document[]
+  goals            Goal[]
+
+  @@unique([companyId, employeeCode])
+  @@index([companyId, status])
+  @@index([departmentId])
+}
+
+// ------------------------------------------------------
+// ATTENDANCE MANAGEMENT
+// ------------------------------------------------------
+
+model Attendance {
+  id            String           @id @default(uuid())
+  employeeId    String
+  date          DateTime         @db.Date
+  checkInTime   DateTime?
+  checkOutTime  DateTime?
+  status        AttendanceStatus
+  totalHours    Decimal?         @db.Decimal(5, 2)
+  ipAddress     String?
+  notes         String?
+  
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  employee      Employee         @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@unique([employeeId, date])
+  @@index([employeeId, status])
+  @@index([date])
+}
+
+// ------------------------------------------------------
+// LEAVE MANAGEMENT
+// ------------------------------------------------------
+
+model LeaveRequest {
+  id            String      @id @default(uuid())
+  companyId     String
+  employeeId    String
+  leaveTypeId   String      // Reference to a LeaveType model (omitted for brevity)
+  startDate     DateTime    @db.Date
+  endDate       DateTime    @db.Date
+  totalDays     Decimal     @db.Decimal(4, 1)
+  reason        String
+  status        LeaveStatus @default(PENDING)
+  approvedById  String?     // References Employee.id
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([companyId])
+  @@index([employeeId])
+  @@index([status])
+}
+
+// ------------------------------------------------------
+// PAYROLL MANAGEMENT
+// ------------------------------------------------------
+
+model PayrollRun {
+  id            String        @id @default(uuid())
+  companyId     String
+  month         Int           // 1-12
+  year          Int
+  status        PayrollStatus @default(DRAFT)
+  totalAmount   Decimal       @db.Decimal(12, 2)
+  processedById String?       // References Employee.id
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  company       Company       @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  payslips      Payslip[]
+
+  @@unique([companyId, month, year])
+  @@index([companyId, status])
+}
+
+model Payslip {
+  id            String      @id @default(uuid())
+  payrollRunId  String
+  employeeId    String
+  basicSalary   Decimal     @db.Decimal(10, 2)
+  allowances    Decimal     @db.Decimal(10, 2)
+  deductions    Decimal     @db.Decimal(10, 2)
+  netSalary     Decimal     @db.Decimal(10, 2)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  payrollRun    PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+
+  @@unique([payrollRunId, employeeId])
+  @@index([employeeId])
+}
+
+// ------------------------------------------------------
+// RECRUITMENT MANAGEMENT
+// ------------------------------------------------------
+
+model Job {
+  id            String      @id @default(uuid())
+  companyId     String
+  title         String
+  department    String
+  location      String
+  type          String      // Full-time, Part-time
+  description   String      @db.Text
+  requirements  String      @db.Text
+  isActive      Boolean     @default(true)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  candidates    Candidate[]
+
+  @@index([companyId, isActive])
+}
+
+model Candidate {
+  id            String          @id @default(uuid())
+  jobId         String
+  firstName     String
+  lastName      String
+  email         String
+  phone         String?
+  resumeUrl     String?
+  status        CandidateStatus @default(APPLIED)
+  aiMatchScore  Decimal?        @db.Decimal(5, 2)
+  
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  job           Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([jobId, status])
+}
+
+// ------------------------------------------------------
+// DOCUMENT MANAGEMENT
+// ------------------------------------------------------
+
+model Document {
+  id            String       @id @default(uuid())
+  employeeId    String
+  title         String
+  type          DocumentType
+  fileUrl       String
+  isVerified    Boolean      @default(false)
+  
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  employee      Employee     @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}
+
+// ------------------------------------------------------
+// AUDIT LOGS
+// ------------------------------------------------------
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  companyId     String
+  userId        String?
+  module        String   // 'EMPLOYEE', 'PAYROLL', 'LEAVE'
+  action        String   // 'CREATE', 'UPDATE', 'DELETE'
+  recordId      String
+  oldData       Json?
+  newData       Json?
+  ipAddress     String?
+  userAgent     String?
+  
+  createdAt     DateTime @default(now())
+
+  company       Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, module])
+  @@index([companyId, createdAt])
+}
+
+// ------------------------------------------------------
+// AI ASSISTANT
+// ------------------------------------------------------
+
+model AILog {
+  id            String        @id @default(uuid())
+  companyId     String
+  userId        String
+  actionType    AIActionType
+  prompt        String        @db.Text
+  response      String        @db.Text
+  tokensUsed    Int           @default(0)
+  
+  createdAt     DateTime      @default(now())
+
+  @@index([companyId, actionType])
+}
+
+// ------------------------------------------------------
+// PERFORMANCE MANAGEMENT
+// ------------------------------------------------------
+
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+model Goal {
+  id            String      @id @default(uuid())
+  employeeId    String
+  title         String
+  description   String      @db.Text
+  status        GoalStatus  @default(NOT_STARTED)
+  progress      Int         @default(0) // 0-100
+  dueDate       DateTime    @db.Date
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId])
+}
+
+// ------------------------------------------------------
+// POLICY MANAGEMENT
+// ------------------------------------------------------
+
+model Policy {
+  id            String      @id @default(uuid())
+  companyId     String
+  title         String
+  description   String      @db.Text
+  category      String      @default("General")
+  fileUrl       String?
+  effectiveDate DateTime    @db.Date
+  isActive      Boolean     @default(true)
+  
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@index([companyId, isActive])
+}
