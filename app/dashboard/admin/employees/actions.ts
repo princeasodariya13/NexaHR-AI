@@ -5,6 +5,14 @@ import prisma from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { EmployeeStatus } from '@prisma/client'
 
+function getAppUrl() {
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return 'http://localhost:3000';
+}
+
 export async function updateEmployeeRole(employeeId: string, newRole: string) {
   if (employeeId.length < 10) return { error: "Cannot modify demo data." }
 
@@ -143,7 +151,7 @@ export async function createEmployee(data: {
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         
-        const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const appUrl = getAppUrl();
         
         // Generate an invite link (this creates the user in Auth if they don't exist)
         let { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -209,7 +217,7 @@ export async function createEmployee(data: {
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
-        const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        const appUrl = getAppUrl();
         
         const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
