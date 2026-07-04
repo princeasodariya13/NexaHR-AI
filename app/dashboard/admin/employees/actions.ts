@@ -4,8 +4,15 @@ import { revalidatePath } from 'next/cache'
 import prisma from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { EmployeeStatus } from '@prisma/client'
+import { headers } from 'next/headers'
 
-function getAppUrl() {
+async function getAppUrl() {
+  try {
+    const headersList = await headers();
+    const origin = headersList.get('origin');
+    if (origin) return origin;
+  } catch(e) {}
+  
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
@@ -151,7 +158,7 @@ export async function createEmployee(data: {
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         
-        const appUrl = getAppUrl();
+        const appUrl = await getAppUrl();
         
         // Generate an invite link (this creates the user in Auth if they don't exist)
         let { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
@@ -217,7 +224,7 @@ export async function createEmployee(data: {
           process.env.NEXT_PUBLIC_SUPABASE_URL!,
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
-        const appUrl = getAppUrl();
+        const appUrl = await getAppUrl();
         
         const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
           type: 'recovery',
