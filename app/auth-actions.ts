@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import prisma from '@/lib/prisma'
+import { headers } from 'next/headers'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -65,6 +66,32 @@ export async function login(formData: FormData) {
 
   revalidatePath('/', 'layout')
   redirect(redirectUrl)
+}
+
+export async function loginWithGoogle(formData: FormData) {
+  const supabase = await createClient()
+  const loginType = formData.get('loginType') as string || 'admin'
+  const headersList = await headers()
+  const origin = headersList.get('origin') || 'http://localhost:3000'
+  
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${origin}/auth/callback?type=${loginType}`,
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'consent',
+      },
+    },
+  })
+
+  if (error) {
+    redirect(`/login?type=${loginType}&error=${encodeURIComponent(error.message)}`)
+  }
+
+  if (data.url) {
+    redirect(data.url)
+  }
 }
 
 export async function signup(formData: FormData) {

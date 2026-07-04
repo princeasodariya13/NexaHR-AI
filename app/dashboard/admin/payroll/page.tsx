@@ -2,8 +2,37 @@ import { PayrollClient, PayrollRunData } from "./PayrollClient";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
+import { Suspense } from "react";
 
-export default async function PayrollPage() {
+export default function PayrollPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Payroll Management</h1>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">Process monthly payroll and generate payslips securely.</p>
+        </div>
+      </div>
+
+      <Suspense fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+          </div>
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 h-96 flex items-center justify-center">
+            <div className="text-[#9CA3AF] dark:text-[#6B7280]">Loading payroll records...</div>
+          </div>
+        </div>
+      }>
+        <PayrollData />
+      </Suspense>
+    </div>
+  );
+}
+
+async function PayrollData() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -11,7 +40,6 @@ export default async function PayrollPage() {
     redirect('/login');
   }
 
-  // Get user's company
   let dbUser = null;
   let recentRuns: PayrollRunData[] = [];
   let stats = { currentMonthCost: "₹0", payslipsGenerated: 0, activeEmployees: 0 };
@@ -39,7 +67,6 @@ export default async function PayrollPage() {
       
       const activeEmployeesCount = dbEmployees.length;
       
-      // Get payroll runs
       const rawRuns = await prisma.payrollRun.findMany({
         where: { companyId },
         orderBy: [{ year: 'desc' }, { month: 'desc' }],

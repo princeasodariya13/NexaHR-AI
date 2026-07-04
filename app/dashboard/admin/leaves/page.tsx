@@ -3,8 +3,31 @@ import prisma from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
+import { Suspense } from "react";
 
-export default async function LeavesPage() {
+export default function LeavesPage() {
+  return (
+    <div className="space-y-6">
+
+      <Suspense fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+            <div className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+          </div>
+          <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 h-96 flex items-center justify-center">
+            <div className="text-[#9CA3AF] dark:text-[#6B7280]">Loading leave requests...</div>
+          </div>
+        </div>
+      }>
+        <LeavesData />
+      </Suspense>
+    </div>
+  );
+}
+
+async function LeavesData() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -12,7 +35,6 @@ export default async function LeavesPage() {
     redirect('/login');
   }
 
-  // Get user's company
   let dbUser = null;
   let leavesData: LeaveRequestData[] = [];
   let stats = { pending: 0, approved: 0, onLeaveToday: 0 };
@@ -53,23 +75,17 @@ export default async function LeavesPage() {
 
       stats.pending = rawLeaves.filter(l => l.status === 'PENDING').length;
       stats.approved = rawLeaves.filter(l => l.status === 'APPROVED').length;
-      
-      // Calculate on leave today
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      stats.onLeaveToday = rawLeaves.filter(l => 
-        l.status === 'APPROVED' && 
-        new Date(l.startDate) <= today && 
+      stats.onLeaveToday = rawLeaves.filter(l =>
+        l.status === 'APPROVED' &&
+        new Date(l.startDate) <= today &&
         new Date(l.endDate) >= today
       ).length;
     }
   } catch (error) {
     console.warn("Prisma Database connection failed in Leaves:. Next.js Dev overlay suppressed.");
-  }
-
-  // Fallback demo data if DB is empty
-  if (leavesData.length === 0) {
-    // Rely strictly on real database data and show empty state
   }
 
   return <LeavesClient stats={stats} leaves={leavesData} />;

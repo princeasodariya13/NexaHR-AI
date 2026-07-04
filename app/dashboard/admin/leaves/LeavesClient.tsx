@@ -34,7 +34,7 @@ export function LeavesClient({ stats, leaves }: LeavesClientProps) {
 
   const pendingLeaves = leaves.filter(l => l.status === 'PENDING');
   const historyLeaves = leaves.filter(l => l.status !== 'PENDING');
-  
+
   const displayLeaves = activeTab === 'pending' ? pendingLeaves : historyLeaves;
 
   return (
@@ -83,13 +83,13 @@ export function LeavesClient({ stats, leaves }: LeavesClientProps) {
 
       <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm overflow-hidden flex flex-col">
         <div className="flex items-center gap-6 px-6 border-b border-[#E5E7EB] dark:border-[#1E293B]">
-          <button 
+          <button
             onClick={() => setActiveTab('pending')}
             className={`py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'pending' ? 'border-[#111827] text-[#111827] dark:text-[#F3F4F6]' : 'border-transparent text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] hover:text-[#111827] dark:text-[#F3F4F6]'}`}
           >
             Pending Approvals ({pendingLeaves.length})
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('history')}
             className={`py-4 text-sm font-semibold border-b-2 transition-colors ${activeTab === 'history' ? 'border-[#111827] text-[#111827] dark:text-[#F3F4F6]' : 'border-transparent text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] hover:text-[#111827] dark:text-[#F3F4F6]'}`}
           >
@@ -137,14 +137,14 @@ export function LeavesClient({ stats, leaves }: LeavesClientProps) {
                   <td className="px-6 py-4 text-right">
                     {activeTab === 'pending' ? (
                       <div className="flex items-center justify-end gap-2">
-                        <button 
+                        <button
                           onClick={() => handleUpdate(leave.id, 'APPROVED')}
                           disabled={isPending}
                           className="p-2 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 rounded-lg transition-colors border border-emerald-100 disabled:opacity-50"
                         >
                           <Check className="w-4 h-4" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleUpdate(leave.id, 'REJECTED')}
                           disabled={isPending}
                           className="p-2 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg transition-colors border border-red-100 disabled:opacity-50"
@@ -153,9 +153,8 @@ export function LeavesClient({ stats, leaves }: LeavesClientProps) {
                         </button>
                       </div>
                     ) : (
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        leave.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
-                      }`}>
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${leave.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                        }`}>
                         {leave.status}
                       </span>
                     )}

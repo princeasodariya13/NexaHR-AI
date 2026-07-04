@@ -11,20 +11,13 @@ export function AddEmployeeModal() {
     firstName: "",
     lastName: "",
     email: "",
-    jobTitle: "",
-    passwordOption: "auto" as "auto" | "manual",
-    password: ""
+    jobTitle: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.jobTitle) {
       alert("Please fill in all required fields.");
-      return;
-    }
-    
-    if (formData.passwordOption === 'manual' && formData.password.length < 6) {
-      alert("Password must be at least 6 characters long.");
       return;
     }
 
@@ -39,22 +32,18 @@ export function AddEmployeeModal() {
         if (res.error === "DEMO_MODE_OFFLINE") {
           alert("Success! (Demo Mode): Your database is currently paused, so the employee cannot be permanently saved to the table. Please unpause Supabase to see real data updates.");
           setIsOpen(false);
-          setFormData({ firstName: "", lastName: "", email: "", jobTitle: "", passwordOption: "auto", password: "" });
+          setFormData({ firstName: "", lastName: "", email: "", jobTitle: "" });
         } else {
           alert(res.error);
         }
       } else {
-        if (formData.passwordOption === 'auto') {
-          if (res.emailSent) {
-             alert(`Employee added successfully! An email has been sent to them.\n\nTheir temporary password is: ${res.generatedPassword}`);
-          } else {
-             alert(`Employee added successfully, but email sending failed.\n\nTheir temporary password is: ${res.generatedPassword}`);
-          }
+        if (res.emailSent) {
+           alert("Employee added successfully! An invitation email has been sent to them to set up their password.");
         } else {
-            alert(`Employee added successfully!`);
+           alert("Employee added successfully, but the invitation email could not be sent.");
         }
         setIsOpen(false);
-        setFormData({ firstName: "", lastName: "", email: "", jobTitle: "", passwordOption: "auto", password: "" });
+        setFormData({ firstName: "", lastName: "", email: "", jobTitle: "" });
       }
     });
   };
@@ -147,49 +136,6 @@ export function AddEmployeeModal() {
                 </select>
               </div>
 
-              {/* Password Options */}
-              <div className="space-y-3 pt-2">
-                <label className="block text-sm font-semibold text-[#111827] dark:text-[#F3F4F6]">Password Setup <span className="text-red-500">*</span></label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div 
-                    onClick={() => setFormData({...formData, passwordOption: 'auto'})}
-                    className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${
-                      formData.passwordOption === 'auto' 
-                      ? "border-[#111827] dark:border-[#F3F4F6] bg-blue-50 dark:bg-blue-900/20" 
-                      : "border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50"
-                    }`}
-                  >
-                    <Mail className={`w-5 h-5 ${formData.passwordOption === 'auto' ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#9CA3AF] dark:text-[#6B7280]"}`} />
-                    <span className={`text-sm font-medium ${formData.passwordOption === 'auto' ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#6B7280] dark:text-[#9CA3AF]"}`}>Auto-generate & Email</span>
-                  </div>
-                  
-                  <div 
-                    onClick={() => setFormData({...formData, passwordOption: 'manual'})}
-                    className={`flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition-all ${
-                      formData.passwordOption === 'manual' 
-                      ? "border-[#111827] dark:border-[#F3F4F6] bg-blue-50 dark:bg-blue-900/20" 
-                      : "border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50"
-                    }`}
-                  >
-                    <Key className={`w-5 h-5 ${formData.passwordOption === 'manual' ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#9CA3AF] dark:text-[#6B7280]"}`} />
-                    <span className={`text-sm font-medium ${formData.passwordOption === 'manual' ? "text-[#111827] dark:text-[#F3F4F6]" : "text-[#6B7280] dark:text-[#9CA3AF]"}`}>Set Manually</span>
-                  </div>
-                </div>
-
-                {formData.passwordOption === 'manual' && (
-                  <div className="space-y-1 mt-2 animate-in fade-in slide-in-from-top-1">
-                    <input 
-                      type="text" 
-                      required
-                      value={formData.password}
-                      onChange={(e) => setFormData({...formData, password: e.target.value})}
-                      placeholder="Enter temporary password"
-                      className="w-full px-4 py-2.5 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all text-[#111827] dark:text-[#F3F4F6]"
-                    />
-                    <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Must be at least 6 characters. You will need to share this with the employee.</p>
-                  </div>
-                )}
-              </div>
             </form>
             
             <div className="p-6 border-t border-[#E5E7EB] dark:border-[#1E293B] bg-[#F8FAFC] dark:bg-[#1E293B] flex justify-end gap-3 mt-auto">

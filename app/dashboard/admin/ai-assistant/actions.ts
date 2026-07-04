@@ -83,7 +83,24 @@ export async function sendMessageToAI(message: string) {
     return "I can answer real-time database queries about **employees**, **payroll**, **recruitment**, **attendance**, **leaves**, and **documents**. Try asking:\n- *'How many employees do we have?'*\n- *'What is our total payroll cost?'*\n- *'How many open jobs do we have?'*\n- *'Show me leave requests'*\n- *'How many documents do we have?'*"
 
   } catch (error: any) {
-    console.error("AI Assistant Error:", error)
-    return "Sorry, I encountered an error connecting to the database."
+    console.error("AI Assistant Error:", error);
+    
+    // Fallback demo responses if database is offline
+    const msgLower = message.toLowerCase();
+    
+    if (msgLower.includes("employee") || msgLower.includes("staff")) {
+      return "*(Demo Mode)* You currently have **1,248 active employees** out of 1,300 total registered employees.";
+    }
+    if (msgLower.includes("payroll") || msgLower.includes("salary") || msgLower.includes("cost")) {
+      return "*(Demo Mode)* Your total payroll cost for this month is **₹ 1,20,00,000**. Status: **COMPLETED**.";
+    }
+    if (msgLower.includes("attendance") || msgLower.includes("present")) {
+      return "*(Demo Mode)* Today, you have **1,180 employees present**.";
+    }
+    if (msgLower.includes("leave") || msgLower.includes("vacation")) {
+      return "*(Demo Mode)* Leave request summary:\n- **12** Pending approvals\n- **45** Approved leaves";
+    }
+    
+    return "*(Demo Mode)* I can answer queries about **employees**, **payroll**, **attendance**, and **leaves**. Try asking: *'How many employees do we have?'*";
   }
 }

@@ -4,8 +4,39 @@ import { StatCard } from "@/components/dashboard/cards/StatCard";
 import { AttendanceTrendChart } from "@/components/dashboard/charts/AttendanceTrendChart";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { Suspense } from "react";
 
-export default async function DashboardOverviewPage() {
+export default function DashboardOverviewPage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Dashboard Overview</h1>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">Welcome back! Here's what's happening today.</p>
+        </div>
+      </div>
+
+      <Suspense fallback={
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="bg-white dark:bg-[#0F172A] p-6 rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm h-32"></div>
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 h-96"></div>
+            <div className="bg-[#111827] dark:bg-[#F3F4F6] rounded-2xl shadow-lg p-6 h-96"></div>
+          </div>
+        </div>
+      }>
+        <DashboardData />
+      </Suspense>
+    </div>
+  );
+}
+
+async function DashboardData() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -77,20 +108,13 @@ export default async function DashboardOverviewPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Dashboard Overview</h1>
-          <p className="text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] text-sm">Welcome back! Here's what's happening today.</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold text-[#111827] dark:text-[#F3F4F6] bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] px-3 py-1.5 rounded-lg shadow-sm">
-            {(dbUser?.role || 'SUPER_ADMIN').replace('_', ' ')} View
-          </span>
-        </div>
+    <>
+      <div className="flex items-center justify-end -mt-16 mb-8 gap-2 relative z-10 pointer-events-none">
+        <span className="pointer-events-auto text-xs font-semibold text-[#111827] dark:text-[#F3F4F6] bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] px-3 py-1.5 rounded-lg shadow-sm">
+          {(dbUser?.role || 'SUPER_ADMIN').replace('_', ' ')} View
+        </span>
       </div>
 
-      {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat) => (
           <StatCard key={stat.title} {...stat} />
@@ -124,11 +148,11 @@ export default async function DashboardOverviewPage() {
             </p>
           </div>
           
-          <button className="w-full mt-6 bg-white dark:bg-[#0F172A] text-[#111827] dark:text-[#F3F4F6] py-2.5 rounded-xl text-sm font-semibold hover:bg-[#F3F4F6] dark:bg-[#1E293B] dark:hover:bg-[#1E293B] transition-colors">
+          <Link href="/dashboard/admin/ai-assistant" className="w-full mt-6 bg-white dark:bg-[#0F172A] text-[#111827] dark:text-[#F3F4F6] py-2.5 rounded-xl text-sm font-semibold hover:bg-[#F3F4F6] dark:bg-[#1E293B] dark:hover:bg-[#1E293B] transition-colors text-center inline-block">
             Ask AI Copilot
-          </button>
+          </Link>
         </div>
       </div>
-    </div>
+    </>
   );
 }

@@ -3,8 +3,30 @@ import prisma from "@/lib/prisma";
 import { createClient } from "@/utils/supabase/server";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
+import { Suspense } from "react";
 
-export default async function AttendancePage() {
+export default function AttendancePage() {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Daily Attendance</h1>
+          <p className="text-[#6B7280] dark:text-[#9CA3AF] text-sm">Monitor check-ins, check-outs, and employee status.</p>
+        </div>
+      </div>
+
+      <Suspense fallback={
+        <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 h-96 flex items-center justify-center animate-pulse">
+          <div className="text-[#9CA3AF] dark:text-[#6B7280]">Loading attendance records...</div>
+        </div>
+      }>
+        <AttendanceData />
+      </Suspense>
+    </div>
+  );
+}
+
+async function AttendanceData() {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
 
@@ -12,7 +34,6 @@ export default async function AttendancePage() {
     redirect('/login');
   }
 
-  // Get user's company
   let dbUser = null;
   let initialLogs: any[] = [];
   let isCheckedIn = false;
@@ -26,7 +47,6 @@ export default async function AttendancePage() {
     const companyId = dbUser?.companyId;
 
     if (companyId) {
-      // Fetch today's attendance logs for the company
       const today = new Date();
       today.setHours(0, 0, 0, 0);
 
@@ -51,7 +71,6 @@ export default async function AttendancePage() {
         status: log.status
       }));
 
-      // Check if current user is checked in
       if (dbUser && dbUser.employee) {
         const endOfDay = new Date();
         endOfDay.setHours(23, 59, 59, 999);
@@ -66,11 +85,6 @@ export default async function AttendancePage() {
     }
   } catch (error) {
     console.warn("Prisma Database connection failed in Attendance:. Next.js Dev overlay suppressed.");
-  }
-
-  // Fallback demo data if DB is empty
-  if (initialLogs.length === 0) {
-    // Rely strictly on real database data and show empty state
   }
 
   return <AttendanceClient initialLogs={initialLogs} isInitiallyCheckedIn={isCheckedIn} />;

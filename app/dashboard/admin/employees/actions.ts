@@ -68,15 +68,13 @@ export async function updateEmployeeStatus(employeeId: string, status: string) {
   }
 }
 
-import { sendEmployeeWelcomeEmail } from '@/lib/mail';
+import { sendEmployeeInviteEmail } from '@/lib/mail';
 
 export async function createEmployee(data: {
   firstName: string;
   lastName: string;
   email: string;
   jobTitle: string;
-  passwordOption?: "auto" | "manual";
-  password?: string;
   loginUrl?: string;
 }) {
   try {
@@ -136,14 +134,8 @@ export async function createEmployee(data: {
 
     let targetUserId = employeeUser?.id;
 
-    // Password Generation
-    const passwordOption = data.passwordOption || "auto";
-    const generatedPassword = passwordOption === "auto" 
-      ? Math.random().toString(36).slice(-8) + "1@aA" 
-      : data.password!;
-
     if (!targetUserId) {
-      // Create user in Supabase Auth using Admin API
+      let inviteLink = "";
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
         const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
         const supabaseAdmin = createSupabaseClient(
@@ -151,21 +143,45 @@ export async function createEmployee(data: {
           process.env.SUPABASE_SERVICE_ROLE_KEY
         );
         
-        const { data: adminData, error: adminError } = await supabaseAdmin.auth.admin.createUser({
+        const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        
+        // Generate an invite link (this creates the user in Auth if they don't exist)
+        let { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'invite',
           email: data.email,
-          password: generatedPassword,
-          email_confirm: true,
+          options: {
+            redirectTo: `${appUrl}/update-password`
+          }
         });
 
-        if (adminError) {
-          if (adminError.message.includes('already registered') || adminError.message.includes('already exists')) {
-            throw new Error("This email is already registered in the authentication system. Please use a different email or try again later if it was recently deleted.");
+        if (linkError) {
+          // If already registered, generate a password recovery link instead
+          if (linkError.message.includes('already registered') || linkError.message.includes('already exists') || linkError.message.includes('email_exists')) {
+            const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+              type: 'recovery',
+              email: data.email,
+              options: {
+                redirectTo: `${appUrl}/update-password`
+              }
+            });
+            
+            if (recoveryError) {
+               throw new Error(`Failed to generate recovery link: ${recoveryError.message}`);
+            }
+            linkData = recoveryData;
+          } else {
+            throw new Error(`Auth Error: ${linkError.message}`);
           }
-          throw new Error(`Auth Error: ${adminError.message}`);
         }
         
-        if (adminData?.user) {
-          targetUserId = adminData.user.id;
+        if (linkData?.user) {
+          targetUserId = linkData.user.id;
+        }
+        
+        if (linkData?.properties?.action_link) {
+           inviteLink = linkData.properties.action_link;
+           // We store this temporarily on the request context or just pass it down to be sent later
+           data.loginUrl = inviteLink; // Re-using loginUrl field to pass the link down
         }
       }
 
@@ -184,6 +200,29 @@ export async function createEmployee(data: {
         }
       })
       targetUserId = newUser.id;
+    } else {
+      // If targetUserId already existed (User record exists but no Employee record),
+      // we still need to generate a link to send them
+      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
+        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
+        const supabaseAdmin = createSupabaseClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY
+        );
+        const appUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+        
+        const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
+          type: 'recovery',
+          email: data.email,
+          options: {
+            redirectTo: `${appUrl}/update-password`
+          }
+        });
+        
+        if (!recoveryError && recoveryData?.properties?.action_link) {
+           data.loginUrl = recoveryData.properties.action_link;
+        }
+      }
     }
 
     // 2. Create the Employee record
@@ -202,18 +241,19 @@ export async function createEmployee(data: {
     })
 
     let emailSent = false;
-    if (passwordOption === 'auto') {
-      emailSent = await sendEmployeeWelcomeEmail(
+    if (data.loginUrl) {
+      emailSent = await sendEmployeeInviteEmail(
         data.email, 
         data.firstName, 
-        generatedPassword, 
-        data.loginUrl || (process.env.NEXT_PUBLIC_APP_URL ? process.env.NEXT_PUBLIC_APP_URL + '/login' : 'https://nexahr.vercel.app/login')
+        data.loginUrl
       );
+    } else {
+      console.warn("No invite link was generated to send to the employee.");
     }
 
     revalidatePath('/dashboard/admin')
     revalidatePath('/dashboard/admin/employees')
-    return { success: true, generatedPassword, emailSent }
+    return { success: true, emailSent }
   } catch (error: any) {
     console.error("Create Employee Error:", error)
     const errorMsg = error.message || "";
