@@ -165,7 +165,7 @@ export async function createEmployee(data: {
           type: 'invite',
           email: data.email,
           options: {
-            redirectTo: `${appUrl}/update-password`
+            redirectTo: `${appUrl}/auth/callback?next=/update-password`
           }
         });
 
@@ -176,7 +176,7 @@ export async function createEmployee(data: {
               type: 'recovery',
               email: data.email,
               options: {
-                redirectTo: `${appUrl}/update-password`
+                redirectTo: `${appUrl}/auth/callback?next=/update-password`
               }
             });
             
@@ -230,7 +230,7 @@ export async function createEmployee(data: {
           type: 'recovery',
           email: data.email,
           options: {
-            redirectTo: `${appUrl}/update-password`
+            redirectTo: `${appUrl}/auth/callback?next=/update-password`
           }
         });
         

@@ -40,7 +40,7 @@ export default function UpdatePasswordPage() {
       } else {
         setSuccess(true);
         setTimeout(() => {
-          router.push("/dashboard");
+          router.push("/dashboard/employee");
         }, 2000);
       }
     });
