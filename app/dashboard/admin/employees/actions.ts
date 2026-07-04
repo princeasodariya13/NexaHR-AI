@@ -195,6 +195,9 @@ export async function createEmployee(data: {
         
         if (linkData?.properties?.action_link) {
            inviteLink = linkData.properties.action_link;
+           console.log("\n\n=== GENERATED MAGIC LINK ===");
+           console.log(inviteLink);
+           console.log("==============================\n\n");
            // We store this temporarily on the request context or just pass it down to be sent later
            data.loginUrl = inviteLink; // Re-using loginUrl field to pass the link down
         }
@@ -235,6 +238,9 @@ export async function createEmployee(data: {
         });
         
         if (!recoveryError && recoveryData?.properties?.action_link) {
+           console.log("\n\n=== GENERATED RECOVERY LINK ===");
+           console.log(recoveryData.properties.action_link);
+           console.log("=================================\n\n");
            data.loginUrl = recoveryData.properties.action_link;
         }
       }
