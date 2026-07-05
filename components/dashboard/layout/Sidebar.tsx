@@ -28,6 +28,7 @@ const ADMIN_NAV_ITEMS = [
   { name: "Payroll", href: "/dashboard/admin/payroll", icon: Banknote },
   { name: "Recruitment", href: "/dashboard/admin/recruitment", icon: Briefcase },
   { name: "Documents", href: "/dashboard/admin/documents", icon: FileText },
+  { name: "Resume AI", href: "/dashboard/admin/resume-analyzer", icon: FileText },
   { name: "AI Assistant", href: "/dashboard/admin/ai-assistant", icon: Bot },
 ];
 

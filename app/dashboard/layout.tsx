@@ -1,4 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/layout/Sidebar";
 import { TopNavbar } from "@/components/dashboard/layout/TopNavbar";
@@ -10,10 +11,9 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const { data, error } = await supabase.auth.getUser();
-
-  if (error || !data?.user) {
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
     redirect("/login");
   }
 
@@ -23,7 +23,7 @@ export default async function DashboardLayout({
   
   try {
     const dbUser = await prisma.user.findUnique({
-      where: { id: data.user.id },
+      where: { id: session.user.id },
       select: { 
         role: true, 
         companyId: true,
@@ -42,19 +42,19 @@ export default async function DashboardLayout({
   }
 
   // Fallback to email username if no employee record exists
-  if (!userName && data.user.email) {
-    userName = data.user.email.split('@')[0].replace(/[._-]/g, ' ');
+  if (!userName && session.user.email) {
+    userName = session.user.email.split('@')[0].replace(/[._-]/g, ' ');
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#F8FAFC] dark:bg-[#1E293B]">
+    <div className="flex min-h-screen bg-[#F8FAFC] dark:bg-[#1E293B]">
       <RealtimeProvider companyId={companyId} />
       <Sidebar role={role} />
       
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
-        <TopNavbar userEmail={data.user.email || ""} role={role} userName={userName} />
+      <div className="flex-1 flex flex-col min-w-0">
+        <TopNavbar userEmail={session.user.email || ""} role={role} userName={userName} />
         
-        <main className="flex-1 p-6 overflow-y-auto">
+        <main className="flex-1 p-6">
           {children}
         </main>
       </div>

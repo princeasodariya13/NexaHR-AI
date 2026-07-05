@@ -1,14 +1,10 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mongodb"
+  url      = env("MONGO_URI")
 }
 
 // ------------------------------------------------------
@@ -102,12 +98,59 @@ enum AIActionType {
   POLICY_SEARCH
 }
 
+enum GoalStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+}
+
+// ------------------------------------------------------
+// NEXTAUTH REQUIRED MODELS
+// ------------------------------------------------------
+
+model Account {
+  id                String  @id @default(uuid()) @map("_id")
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid()) @map("_id")
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid()) @map("_id")
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
 // ------------------------------------------------------
 // TENANT / COMPANY MANAGEMENT
 // ------------------------------------------------------
 
 model Company {
-  id             String    @id @default(uuid())
+  id             String    @id @default(uuid()) @map("_id")
   name           String
   logoUrl        String?
   website        String?
@@ -122,7 +165,6 @@ model Company {
   updatedAt      DateTime  @updatedAt
   deletedAt      DateTime?
 
-  // Relations
   users          User[]
   departments    Department[]
   employees      Employee[]
@@ -134,11 +176,11 @@ model Company {
 }
 
 model Department {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @map("_id")
   companyId   String
   name        String
   description String?
-  managerId   String?  // References Employee.id
+  managerId   String? 
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -155,8 +197,11 @@ model Department {
 // ------------------------------------------------------
 
 model User {
-  id            String    @id @default(uuid()) // Supabase Auth UID maps here
+  id            String    @id @default(uuid()) @map("_id")
   email         String    @unique
+  emailVerified DateTime?
+  password      String?   // Added for Credentials auth
+  image         String?
   companyId     String
   role          UserRole  @default(EMPLOYEE)
   isActive      Boolean   @default(true)
@@ -168,9 +213,11 @@ model User {
 
   company       Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
   employee      Employee?
+  
+  accounts      Account[]
+  sessions      Session[]
 
   @@index([companyId])
-  @@index([email])
 }
 
 // ------------------------------------------------------
@@ -178,7 +225,7 @@ model User {
 // ------------------------------------------------------
 
 model Employee {
-  id               String         @id @default(uuid())
+  id               String         @id @default(uuid()) @map("_id")
   companyId        String
   userId           String         @unique
   departmentId     String?
@@ -190,7 +237,6 @@ model Employee {
   joiningDate      DateTime
   status           EmployeeStatus @default(ACTIVE)
   
-  // Contact
   workEmail        String
   personalEmail    String?
   phone            String?
@@ -200,7 +246,7 @@ model Employee {
   deletedAt        DateTime?
 
   company          Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user             User           @relation(fields: [userId], references: [id], onDelete: Restrict)
+  user             User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   department       Department?    @relation(fields: [departmentId], references: [id], onDelete: SetNull)
   
   attendances      Attendance[]
@@ -219,13 +265,13 @@ model Employee {
 // ------------------------------------------------------
 
 model Attendance {
-  id            String           @id @default(uuid())
+  id            String           @id @default(uuid()) @map("_id")
   employeeId    String
-  date          DateTime         @db.Date
+  date          DateTime
   checkInTime   DateTime?
   checkOutTime  DateTime?
   status        AttendanceStatus
-  totalHours    Decimal?         @db.Decimal(5, 2)
+  totalHours    Float?
   ipAddress     String?
   notes         String?
   
@@ -244,16 +290,16 @@ model Attendance {
 // ------------------------------------------------------
 
 model LeaveRequest {
-  id            String      @id @default(uuid())
+  id            String      @id @default(uuid()) @map("_id")
   companyId     String
   employeeId    String
-  leaveTypeId   String      // Reference to a LeaveType model (omitted for brevity)
-  startDate     DateTime    @db.Date
-  endDate       DateTime    @db.Date
-  totalDays     Decimal     @db.Decimal(4, 1)
+  leaveTypeId   String
+  startDate     DateTime
+  endDate       DateTime
+  totalDays     Float
   reason        String
   status        LeaveStatus @default(PENDING)
-  approvedById  String?     // References Employee.id
+  approvedById  String?
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -271,13 +317,13 @@ model LeaveRequest {
 // ------------------------------------------------------
 
 model PayrollRun {
-  id            String        @id @default(uuid())
+  id            String        @id @default(uuid()) @map("_id")
   companyId     String
-  month         Int           // 1-12
+  month         Int
   year          Int
   status        PayrollStatus @default(DRAFT)
-  totalAmount   Decimal       @db.Decimal(12, 2)
-  processedById String?       // References Employee.id
+  totalAmount   Float
+  processedById String?
   
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -290,19 +336,19 @@ model PayrollRun {
 }
 
 model Payslip {
-  id            String      @id @default(uuid())
+  id            String      @id @default(uuid()) @map("_id")
   payrollRunId  String
   employeeId    String
-  basicSalary   Decimal     @db.Decimal(10, 2)
-  allowances    Decimal     @db.Decimal(10, 2)
-  deductions    Decimal     @db.Decimal(10, 2)
-  netSalary     Decimal     @db.Decimal(10, 2)
+  basicSalary   Float
+  allowances    Float
+  deductions    Float
+  netSalary     Float
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
   payrollRun    PayrollRun  @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
-  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Restrict)
+  employee      Employee    @relation(fields: [employeeId], references: [id])
 
   @@unique([payrollRunId, employeeId])
   @@index([employeeId])
@@ -313,14 +359,14 @@ model Payslip {
 // ------------------------------------------------------
 
 model Job {
-  id            String      @id @default(uuid())
+  id            String      @id @default(uuid()) @map("_id")
   companyId     String
   title         String
   department    String
   location      String
-  type          String      // Full-time, Part-time
-  description   String      @db.Text
-  requirements  String      @db.Text
+  type          String
+  description   String
+  requirements  String
   isActive      Boolean     @default(true)
   
   createdAt     DateTime    @default(now())
@@ -333,7 +379,7 @@ model Job {
 }
 
 model Candidate {
-  id            String          @id @default(uuid())
+  id            String          @id @default(uuid()) @map("_id")
   jobId         String
   firstName     String
   lastName      String
@@ -341,7 +387,7 @@ model Candidate {
   phone         String?
   resumeUrl     String?
   status        CandidateStatus @default(APPLIED)
-  aiMatchScore  Decimal?        @db.Decimal(5, 2)
+  aiMatchScore  Float?
   
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -356,7 +402,7 @@ model Candidate {
 // ------------------------------------------------------
 
 model Document {
-  id            String       @id @default(uuid())
+  id            String       @id @default(uuid()) @map("_id")
   employeeId    String
   title         String
   type          DocumentType
@@ -376,11 +422,11 @@ model Document {
 // ------------------------------------------------------
 
 model AuditLog {
-  id            String   @id @default(uuid())
-  companyId     String
+  id            String   @id @default(uuid()) @map("_id")
+  companyId     String   @db.ObjectId
   userId        String?
-  module        String   // 'EMPLOYEE', 'PAYROLL', 'LEAVE'
-  action        String   // 'CREATE', 'UPDATE', 'DELETE'
+  module        String
+  action        String
   recordId      String
   oldData       Json?
   newData       Json?
@@ -400,12 +446,12 @@ model AuditLog {
 // ------------------------------------------------------
 
 model AILog {
-  id            String        @id @default(uuid())
+  id            String        @id @default(uuid()) @map("_id")
   companyId     String
   userId        String
   actionType    AIActionType
-  prompt        String        @db.Text
-  response      String        @db.Text
+  prompt        String
+  response      String
   tokensUsed    Int           @default(0)
   
   createdAt     DateTime      @default(now())
@@ -417,21 +463,14 @@ model AILog {
 // PERFORMANCE MANAGEMENT
 // ------------------------------------------------------
 
-enum GoalStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-  ON_HOLD
-}
-
 model Goal {
-  id            String      @id @default(uuid())
-  employeeId    String
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId    String      @db.ObjectId
   title         String
-  description   String      @db.Text
+  description   String
   status        GoalStatus  @default(NOT_STARTED)
   progress      Int         @default(0) // 0-100
-  dueDate       DateTime    @db.Date
+  dueDate       DateTime
   
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -446,13 +485,13 @@ model Goal {
 // ------------------------------------------------------
 
 model Policy {
-  id            String      @id @default(uuid())
-  companyId     String
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  companyId     String      @db.ObjectId
   title         String
-  description   String      @db.Text
+  description   String
   category      String      @default("General")
   fileUrl       String?
-  effectiveDate DateTime    @db.Date
+  effectiveDate DateTime
   isActive      Boolean     @default(true)
   
   createdAt     DateTime    @default(now())

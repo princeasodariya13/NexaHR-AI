@@ -33,7 +33,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
     >
       <head>
         <script
@@ -51,7 +51,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#F8FAFC] dark:bg-[#0F172A] text-[#111827] dark:text-[#F3F4F6] transition-colors duration-200">
+      <body className="flex flex-col bg-[#F8FAFC] dark:bg-[#0F172A] text-[#111827] dark:text-[#F3F4F6] transition-colors duration-200 min-h-screen">
         <SmoothScroll>{children}</SmoothScroll>
       </body>
     </html>

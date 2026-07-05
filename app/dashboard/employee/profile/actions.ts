@@ -1,12 +1,13 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 
 export async function updateProfile(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     return { error: "Unauthorized" };

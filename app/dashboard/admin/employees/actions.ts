@@ -2,7 +2,9 @@
 
 import { revalidatePath } from 'next/cache'
 import prisma from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import bcrypt from "bcryptjs";
 import { EmployeeStatus } from '@prisma/client'
 import { headers } from 'next/headers'
 
@@ -24,8 +26,8 @@ export async function updateEmployeeRole(employeeId: string, newRole: string) {
   if (employeeId.length < 10) return { error: "Cannot modify demo data." }
 
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     // Security check: verify this employee belongs to the user's company
@@ -33,7 +35,9 @@ export async function updateEmployeeRole(employeeId: string, newRole: string) {
     if (!dbUser) throw new Error("User not found in database")
 
     const employeeToUpdate = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employeeToUpdate || employeeToUpdate.companyId !== dbUser.companyId) {
+    const isSuperAdmin = dbUser.role === "SUPER_ADMIN";
+    
+    if (!employeeToUpdate || (!isSuperAdmin && employeeToUpdate.companyId !== dbUser.companyId)) {
       throw new Error("Employee not found or access denied.");
     }
 
@@ -56,15 +60,17 @@ export async function updateEmployeeStatus(employeeId: string, status: string) {
   if (employeeId.length < 10) return { error: "Cannot modify demo data." }
 
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) throw new Error("User not found in database")
 
     const employeeToUpdate = await prisma.employee.findUnique({ where: { id: employeeId } });
-    if (!employeeToUpdate || employeeToUpdate.companyId !== dbUser.companyId) {
+    const isSuperAdmin = dbUser.role === "SUPER_ADMIN";
+
+    if (!employeeToUpdate || (!isSuperAdmin && employeeToUpdate.companyId !== dbUser.companyId)) {
       throw new Error("Employee not found or access denied.");
     }
 
@@ -83,7 +89,7 @@ export async function updateEmployeeStatus(employeeId: string, status: string) {
   }
 }
 
-import { sendEmployeeInviteEmail } from '@/lib/mail';
+import { sendEmployeeWelcomeEmail } from '@/lib/mail';
 
 export async function createEmployee(data: {
   firstName: string;
@@ -93,8 +99,8 @@ export async function createEmployee(data: {
   loginUrl?: string;
 }) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     let dbUser = await prisma.user.findUnique({ where: { id: user.id } })
@@ -150,100 +156,35 @@ export async function createEmployee(data: {
     let targetUserId = employeeUser?.id;
 
     if (!targetUserId) {
-      let inviteLink = "";
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-        const supabaseAdmin = createSupabaseClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-        
-        const appUrl = await getAppUrl();
-        
-        // Generate an invite link (this creates the user in Auth if they don't exist)
-        let { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'invite',
-          email: data.email,
-          options: {
-            redirectTo: `${appUrl}/update-password`
-          }
-        });
-
-        if (linkError) {
-          // If already registered, generate a password recovery link instead
-          if (linkError.message.includes('already registered') || linkError.message.includes('already exists') || linkError.message.includes('email_exists')) {
-            const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
-              type: 'recovery',
-              email: data.email,
-              options: {
-                redirectTo: `${appUrl}/update-password`
-              }
-            });
-            
-            if (recoveryError) {
-               throw new Error(`Failed to generate recovery link: ${recoveryError.message}`);
-            }
-            linkData = recoveryData;
-          } else {
-            throw new Error(`Auth Error: ${linkError.message}`);
-          }
-        }
-        
-        if (linkData?.user) {
-          targetUserId = linkData.user.id;
-        }
-        
-        if (linkData?.properties?.action_link) {
-           inviteLink = linkData.properties.action_link;
-           console.log("\n\n=== GENERATED MAGIC LINK ===");
-           console.log(inviteLink);
-           console.log("==============================\n\n");
-           // We store this temporarily on the request context or just pass it down to be sent later
-           data.loginUrl = inviteLink; // Re-using loginUrl field to pass the link down
-        }
-      }
-
-      // Fallback if targetUserId is still null
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + "!";
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      
       const newUser = await prisma.user.upsert({
         where: { email: data.email },
         update: {
           companyId: dbUser.companyId,
-          role: "EMPLOYEE"
+          role: "EMPLOYEE",
+          password: hashedPassword
         },
         create: {
-          id: targetUserId || undefined,
           email: data.email,
           companyId: dbUser.companyId,
-          role: "EMPLOYEE"
+          role: "EMPLOYEE",
+          password: hashedPassword
         }
       })
       targetUserId = newUser.id;
+      data.loginUrl = tempPassword; // pass the password down
     } else {
-      // If targetUserId already existed (User record exists but no Employee record),
-      // we still need to generate a link to send them
-      if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-        const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-        const supabaseAdmin = createSupabaseClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.SUPABASE_SERVICE_ROLE_KEY
-        );
-        const appUrl = await getAppUrl();
-        
-        const { data: recoveryData, error: recoveryError } = await supabaseAdmin.auth.admin.generateLink({
-          type: 'recovery',
-          email: data.email,
-          options: {
-            redirectTo: `${appUrl}/update-password`
-          }
-        });
-        
-        if (!recoveryError && recoveryData?.properties?.action_link) {
-           console.log("\n\n=== GENERATED RECOVERY LINK ===");
-           console.log(recoveryData.properties.action_link);
-           console.log("=================================\n\n");
-           data.loginUrl = recoveryData.properties.action_link;
-        }
-      }
+      // If targetUserId already existed (User record exists but no Employee record)
+      const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + "!";
+      const hashedPassword = await bcrypt.hash(tempPassword, 10);
+      
+      await prisma.user.update({
+        where: { id: targetUserId },
+        data: { password: hashedPassword }
+      });
+      data.loginUrl = tempPassword;
     }
 
     // 2. Create the Employee record
@@ -262,14 +203,16 @@ export async function createEmployee(data: {
     })
 
     let emailSent = false;
-    if (data.loginUrl) {
-      emailSent = await sendEmployeeInviteEmail(
+    if (data.loginUrl) { // loginUrl currently holds the temp password
+      const appUrl = await getAppUrl();
+      emailSent = await sendEmployeeWelcomeEmail(
         data.email, 
         data.firstName, 
-        data.loginUrl
+        data.loginUrl, // tempPassword
+        `${appUrl}/login`
       );
     } else {
-      console.warn("No invite link was generated to send to the employee.");
+      console.warn("No temporary password was generated to send to the employee.");
     }
 
     revalidatePath('/dashboard/admin')
@@ -292,8 +235,8 @@ export async function deleteEmployee(employeeId: string) {
   if (employeeId.length < 10) return { error: "Cannot modify demo data." }
 
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
@@ -303,45 +246,31 @@ export async function deleteEmployee(employeeId: string) {
       where: { id: employeeId }
     })
     
-    if (!employeeToDelete || employeeToDelete.companyId !== dbUser.companyId) {
+    const isSuperAdmin = dbUser.role === "SUPER_ADMIN";
+
+    if (!employeeToDelete || (!isSuperAdmin && employeeToDelete.companyId !== dbUser.companyId)) {
        return { error: "Employee not found or you don't have permission to delete them." }
     }
 
-    // Attempt to delete from Supabase Auth if we have the admin key and the userId exists
-    if (employeeToDelete.userId && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const { createClient: createSupabaseClient } = await import('@supabase/supabase-js');
-      const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
-      );
-      
-      const { error: adminError } = await supabaseAdmin.auth.admin.deleteUser(employeeToDelete.userId);
-      if (adminError) {
-        console.warn("Failed to delete user from Supabase Auth:", adminError);
-      }
-    }
 
-    // Manually delete related records to avoid foreign key constraint errors
-    // Payslip has onDelete: Restrict, so it MUST be deleted manually
-    await prisma.payslip.deleteMany({ where: { employeeId: employeeId } })
-    
-    // While others have onDelete: Cascade, it's safer to explicitly delete them
-    // to avoid any unexpected database-level constraints
-    await prisma.attendance.deleteMany({ where: { employeeId: employeeId } })
-    await prisma.leaveRequest.deleteMany({ where: { employeeId: employeeId } })
-    await prisma.document.deleteMany({ where: { employeeId: employeeId } })
-    await prisma.goal.deleteMany({ where: { employeeId: employeeId } })
-
-    // Delete the Employee
-    await prisma.employee.delete({
-      where: { 
-        id: employeeId
-      }
-    })
+    // Manually delete related records in a fast transaction to avoid timeouts
+    await prisma.$transaction([
+      prisma.payslip.deleteMany({ where: { employeeId: employeeId } }),
+      prisma.attendance.deleteMany({ where: { employeeId: employeeId } }),
+      prisma.leaveRequest.deleteMany({ where: { employeeId: employeeId } }),
+      prisma.document.deleteMany({ where: { employeeId: employeeId } }),
+      prisma.goal.deleteMany({ where: { employeeId: employeeId } }),
+      prisma.employee.delete({ where: { id: employeeId } })
+    ]);
 
     if (employeeToDelete.userId) {
        try {
-         await prisma.user.delete({ where: { id: employeeToDelete.userId } });
+         // Delete associated user, accounts, and sessions in a single transaction
+         await prisma.$transaction([
+           prisma.account.deleteMany({ where: { userId: employeeToDelete.userId } }),
+           prisma.session.deleteMany({ where: { userId: employeeToDelete.userId } }),
+           prisma.user.delete({ where: { id: employeeToDelete.userId } })
+         ]);
        } catch(e) {
           console.warn("Could not delete user record, it might be referenced elsewhere.");
        }

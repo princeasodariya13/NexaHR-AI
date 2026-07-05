@@ -2,13 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 import prisma from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { PayrollStatus } from '@prisma/client'
 
 export async function runPayrollAction() {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
@@ -64,8 +65,8 @@ export async function runPayrollAction() {
 
 export async function addIndividualPayrollAction(employeeId: string, amount: number) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })

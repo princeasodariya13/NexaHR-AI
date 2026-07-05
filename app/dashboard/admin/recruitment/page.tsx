@@ -1,13 +1,14 @@
 import { Briefcase, Users, UserPlus, CheckCircle, Bot, AlertCircle } from "lucide-react";
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 
 export default async function RecruitmentPage() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
-  if (error || !user) {
+  if (!user) {
     redirect('/login');
   }
 
@@ -146,7 +147,7 @@ export default async function RecruitmentPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Active Jobs Table */}
         <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm overflow-hidden flex flex-col">
           <div className="p-6 border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between">
@@ -184,54 +185,6 @@ export default async function RecruitmentPage() {
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* AI Resume Matcher */}
-        <div className="bg-[#111827] dark:bg-[#F3F4F6] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-lg p-6 text-white dark:text-[#111827] relative overflow-hidden flex flex-col">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/10 rounded-full blur-[50px] pointer-events-none" />
-          
-          <div className="flex items-center gap-2 mb-6 relative z-10">
-            <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#0F172A]/10 flex items-center justify-center">
-              <Bot className="w-5 h-5 text-white dark:text-[#111827]" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">AI Resume Scanner</h3>
-              <p className="text-xs text-white dark:text-[#111827]/60">Powered by NexaHR AI</p>
-            </div>
-          </div>
-          
-          <div className="flex-1 space-y-4 relative z-10 overflow-y-auto">
-            {aiCandidates.map((candidate: any) => {
-              // Color code the match score
-              const score = candidate.aiMatchScore || 0;
-              let scoreColor = "bg-blue-500/20 text-blue-400 border-blue-500/30";
-              if (score >= 90) scoreColor = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-              else if (score >= 70) scoreColor = "bg-amber-500/20 text-amber-400 border-amber-500/30";
-              else if (score < 50) scoreColor = "bg-red-500/20 text-red-400 border-red-500/30";
-
-              return (
-                <div key={candidate.id} className="bg-white dark:bg-[#0F172A]/5 border border-white/10 rounded-xl p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-sm">{candidate.firstName} {candidate.lastName}</h4>
-                    <span className={`border px-2 py-0.5 rounded text-xs font-bold ${scoreColor}`}>
-                      {score}% Match
-                    </span>
-                  </div>
-                  <p className="text-xs text-white dark:text-[#111827]/70">Applied for: {candidate.jobTitle}</p>
-                </div>
-              );
-            })}
-            
-            {aiCandidates.length === 0 && (
-              <div className="text-center py-8 text-white dark:text-[#111827]/50 text-sm">
-                No AI-scanned candidates available.
-              </div>
-            )}
-          </div>
-          
-          <button className="w-full mt-6 bg-white dark:bg-[#0F172A] text-[#111827] dark:text-[#F3F4F6] py-2.5 rounded-xl text-sm font-semibold hover:bg-[#F3F4F6] dark:bg-[#1E293B] dark:hover:bg-[#1E293B] transition-colors relative z-10">
-            Scan New Resumes
-          </button>
         </div>
       </div>
     </div>

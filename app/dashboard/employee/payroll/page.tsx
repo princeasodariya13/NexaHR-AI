@@ -1,4 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { Banknote, Calendar, Download, TrendingUp, AlertCircle } from "lucide-react";
@@ -9,8 +10,8 @@ const MONTH_NAMES = [
 ];
 
 export default async function EmployeePayrollPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     redirect("/login");

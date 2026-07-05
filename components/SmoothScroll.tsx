@@ -8,15 +8,12 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    if (pathname?.startsWith('/dashboard') || pathname?.startsWith('/login') || pathname?.startsWith('/signup') || pathname?.startsWith('/contact')) {
-      return;
-    }
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 0.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
       orientation: "vertical",
       gestureOrientation: "vertical",
-      wheelMultiplier: 1,
+      wheelMultiplier: 1.5,
       touchMultiplier: 2,
     });
 
@@ -27,7 +24,20 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
 
     requestAnimationFrame(raf);
 
+    // Automatically recalculate scroll height when the DOM changes (e.g. results loading)
+    const observer = new MutationObserver(() => {
+      lenis.resize();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      characterData: true
+    });
+
     return () => {
+      observer.disconnect();
       lenis.destroy();
     };
   }, []);

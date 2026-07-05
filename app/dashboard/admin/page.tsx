@@ -1,4 +1,5 @@
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { Users, UserCheck, CalendarOff, Banknote, Sparkles } from "lucide-react";
 import { StatCard } from "@/components/dashboard/cards/StatCard";
 import { AttendanceTrendChart } from "@/components/dashboard/charts/AttendanceTrendChart";
@@ -37,10 +38,10 @@ export default function DashboardOverviewPage() {
 }
 
 async function DashboardData() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
-  if (error || !user) {
+  if (!user) {
     redirect('/login');
   }
 
@@ -64,19 +65,20 @@ async function DashboardData() {
     }
 
     const companyId = dbUser?.companyId;
+    const isSuperAdmin = userRole === "SUPER_ADMIN";
 
-    // Real Database Queries (Only if company exists)
-    if (companyId) {
+    // Real Database Queries (Only if company exists or is super admin)
+    if (companyId || isSuperAdmin) {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
       const results = await Promise.all([
-        prisma.employee.count({ where: { companyId, status: 'ACTIVE' } }),
-        prisma.attendance.count({ where: { employee: { companyId }, date: { gte: today }, status: 'PRESENT' } }),
-        prisma.leaveRequest.count({ where: { companyId, status: 'PENDING' } }),
+        prisma.employee.count({ where: isSuperAdmin ? { status: 'ACTIVE' } : { companyId, status: 'ACTIVE' } }),
+        prisma.attendance.count({ where: isSuperAdmin ? { date: { gte: today }, status: 'PRESENT' } : { employee: { companyId }, date: { gte: today }, status: 'PRESENT' } }),
+        prisma.leaveRequest.count({ where: isSuperAdmin ? { status: 'PENDING' } : { companyId, status: 'PENDING' } }),
         prisma.payrollRun.aggregate({
           _sum: { totalAmount: true },
-          where: { companyId, month: new Date().getMonth() + 1, year: new Date().getFullYear() }
+          where: isSuperAdmin ? { month: new Date().getMonth() + 1, year: new Date().getFullYear() } : { companyId, month: new Date().getMonth() + 1, year: new Date().getFullYear() }
         })
       ]);
       totalEmployees = results[0];

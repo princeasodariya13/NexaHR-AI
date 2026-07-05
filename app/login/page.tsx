@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { login, loginWithGoogle } from "@/app/auth-actions";
+import { signIn } from "next-auth/react";
 import { Bot, ArrowRight, AlertCircle, Building, User, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, FormEvent } from "react";
 import { cn } from "@/lib/utils";
 
 export default function LoginPage() {
@@ -20,9 +20,42 @@ function LoginContent() {
   const error = searchParams.get("error");
   const message = searchParams.get("message");
   const type = searchParams.get("type");
-  
-  const [loginType, setLoginType] = useState<"admin" | "employee">(type === "admin" ? "admin" : "employee");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [authError, setAuthError] = useState(error || "");
+
+  const handleCredentialsLogin = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setAuthError("");
+
+    const formData = new FormData(e.currentTarget);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const res = await signIn("credentials", {
+        redirect: false,
+        email,
+        password,
+      });
+
+      if (res?.error) {
+        setAuthError(res.error);
+      } else {
+        window.location.href = "/dashboard";
+      }
+    } catch (err) {
+      setAuthError("An unexpected error occurred");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    setIsLoading(true);
+    signIn("google", { callbackUrl: "/dashboard" });
+  };
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-center items-center p-4 selection:bg-[#E5E7EB] selection:text-[#111827]">
@@ -46,35 +79,7 @@ function LoginContent() {
               Sign in to your account to continue to NexaHR AI.
             </p>
 
-            {/* Role Toggle */}
-            <div className="flex bg-[#F1F5F9] p-1 rounded-xl mb-8">
-              <button
-                type="button"
-                onClick={() => setLoginType("employee")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-                  loginType === "employee" 
-                    ? "bg-white text-[#111827] shadow-sm" 
-                    : "text-[#6B7280] hover:text-[#111827]"
-                )}
-              >
-                <User className="w-4 h-4" />
-                Employee
-              </button>
-              <button
-                type="button"
-                onClick={() => setLoginType("admin")}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 text-sm font-medium rounded-lg transition-all",
-                  loginType === "admin" 
-                    ? "bg-white text-[#111827] shadow-sm" 
-                    : "text-[#6B7280] hover:text-[#111827]"
-                )}
-              >
-                <Building className="w-4 h-4" />
-                Company Admin
-              </button>
-            </div>
+
 
             {message && (
               <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 p-3 rounded-xl mb-6 text-sm flex items-start gap-2">
@@ -83,14 +88,14 @@ function LoginContent() {
               </div>
             )}
 
-            {error && (
+            {authError && (
               <div className="bg-red-50 border border-red-100 text-red-600 p-3 rounded-xl mb-6 text-sm flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <p>{error}</p>
+                <p>{authError}</p>
               </div>
             )}
 
-            <form className="space-y-5">
+            <form className="space-y-5" onSubmit={handleCredentialsLogin}>
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-[#111827]" htmlFor="email">
                   Work Email
@@ -133,13 +138,12 @@ function LoginContent() {
                 </div>
               </div>
 
-              <input type="hidden" name="loginType" value={loginType} />
-
               <button
-                formAction={login}
-                className="w-full bg-[#111827] text-white hover:bg-[#1f2937] shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2 group mt-2"
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-[#111827] text-white hover:bg-[#1f2937] shadow-[0_4px_14px_0_rgba(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.15)] rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2 group mt-2 disabled:opacity-70"
               >
-                Sign In {loginType === "admin" ? "as Admin" : "as Employee"}
+                {isLoading ? "Signing in..." : "Sign In"}
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </button>
 
@@ -150,9 +154,10 @@ function LoginContent() {
               </div>
 
               <button
-                formAction={loginWithGoogle}
-                formNoValidate
-                className="w-full bg-white text-[#111827] border border-[#E5E7EB] hover:bg-[#F8FAFC] shadow-sm rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2"
+                type="button"
+                onClick={handleGoogleLogin}
+                disabled={isLoading}
+                className="w-full bg-white text-[#111827] border border-[#E5E7EB] hover:bg-[#F8FAFC] shadow-sm rounded-xl px-4 py-3 text-sm font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70"
               >
                 <svg className="w-5 h-5" viewBox="0 0 24 24">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -168,13 +173,9 @@ function LoginContent() {
 
         <p className="text-center text-sm text-[#6B7280] mt-8">
           Don't have an account?{" "}
-          {loginType === "admin" ? (
-            <Link href="/signup" className="text-[#111827] font-semibold hover:underline">
-              Register your company
-            </Link>
-          ) : (
-            <span>Please contact your administrator to receive an invitation link.</span>
-          )}
+          <Link href="/signup" className="text-[#111827] font-semibold hover:underline">
+            Register your company
+          </Link>
         </p>
       </div>
     </div>

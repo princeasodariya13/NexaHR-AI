@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { User, Shield, Moon, Sun, Save, CheckCircle2, AlertCircle } from "lucide-react";
-import { updateEmployeeProfile } from "./actions";
+import { User, Shield, Moon, Sun, Save, CheckCircle2, AlertCircle, KeyRound, Eye, EyeOff } from "lucide-react";
+import { updateEmployeeProfile, changePassword } from "./actions";
 
 type EmployeeSettingsProps = {
   employee: {
@@ -21,6 +21,14 @@ export function SettingsClient({ employee }: EmployeeSettingsProps) {
 
   const [firstName, setFirstName] = useState(employee?.firstName || "");
   const [lastName, setLastName] = useState(employee?.lastName || "");
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isPendingPassword, startTransitionPassword] = useTransition();
 
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -49,6 +57,33 @@ export function SettingsClient({ employee }: EmployeeSettingsProps) {
         setFeedback({ type: "error", message: res.error });
       } else {
         setFeedback({ type: "success", message: "Personal preferences saved successfully." });
+      }
+    });
+  };
+
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFeedback(null);
+    
+    if (newPassword !== confirmPassword) {
+      setFeedback({ type: "error", message: "New passwords do not match." });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setFeedback({ type: "error", message: "New password must be at least 6 characters long." });
+      return;
+    }
+
+    startTransitionPassword(async () => {
+      const res = await changePassword(currentPassword, newPassword);
+      if (res.error) {
+        setFeedback({ type: "error", message: res.error });
+      } else {
+        setFeedback({ type: "success", message: "Password updated successfully." });
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
       }
     });
   };
@@ -165,6 +200,94 @@ export function SettingsClient({ employee }: EmployeeSettingsProps) {
           </div>
         </div>
       </div>
+
+      {/* Security & Password */}
+      <form onSubmit={handleChangePassword} className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 space-y-4 transition-all mt-8 max-w-2xl">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+            <KeyRound className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-[#111827] dark:text-[#F3F4F6]">Security & Password</h3>
+            <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF]">Update your account password.</p>
+          </div>
+        </div>
+
+        <div className="space-y-4 pt-2">
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[#111827] dark:text-[#F3F4F6]">Current Password</label>
+            <div className="relative">
+              <input
+                type={showCurrentPassword ? "text" : "password"}
+                required
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#1E293B] text-sm text-[#111827] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-[#F3F4F6] transition-colors"
+              >
+                {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#111827] dark:text-[#F3F4F6]">New Password</label>
+              <div className="relative">
+                <input
+                  type={showNewPassword ? "text" : "password"}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#1E293B] text-sm text-[#111827] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-[#F3F4F6] transition-colors"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-[#111827] dark:text-[#F3F4F6]">Confirm New Password</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full px-4 py-2.5 rounded-xl border border-[#E5E7EB] dark:border-[#334155] bg-[#F8FAFC] dark:bg-[#1E293B] text-sm text-[#111827] dark:text-[#F3F4F6] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-[#111827] dark:hover:text-[#F3F4F6] transition-colors"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isPendingPassword}
+          className="bg-[#111827] dark:bg-[#1F2937] text-white hover:bg-[#1f2937] dark:hover:bg-[#374151] rounded-xl px-6 py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-75 mt-2"
+        >
+          <Save className="w-4 h-4" />
+          {isPendingPassword ? "Updating..." : "Update Password"}
+        </button>
+      </form>
     </div>
   );
 }

@@ -1,12 +1,13 @@
 'use server'
 
 import prisma from '@/lib/prisma'
-import { createClient } from '@/utils/supabase/server'
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function sendMessageToAI(message: string) {
   try {
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    const session = await getServerSession(authOptions);
+    const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })

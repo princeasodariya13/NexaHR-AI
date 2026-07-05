@@ -1,11 +1,12 @@
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { AIChat } from "./AIChat";
 import { Bot, Sparkles, HelpCircle, Shield, ArrowRight } from "lucide-react";
 
 export default async function AIAssistantPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     redirect("/login");

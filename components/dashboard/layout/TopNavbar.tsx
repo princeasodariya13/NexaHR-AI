@@ -2,14 +2,14 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { 
   Bell, Search, User, Sun, Moon, Menu, X,
   LayoutDashboard, Users, CalendarCheck, CalendarOff, 
   Banknote, Briefcase, FileText, Settings, Bot, 
   Target, Shield
 } from "lucide-react";
-import { logout } from "@/app/auth-actions";
+import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV_ITEMS = [
@@ -20,7 +20,9 @@ const ADMIN_NAV_ITEMS = [
   { name: "Payroll", href: "/dashboard/admin/payroll", icon: Banknote },
   { name: "Recruitment", href: "/dashboard/admin/recruitment", icon: Briefcase },
   { name: "Documents", href: "/dashboard/admin/documents", icon: FileText },
+  { name: "Resume AI", href: "/dashboard/admin/resume-analyzer", icon: Bot },
   { name: "AI Assistant", href: "/dashboard/admin/ai-assistant", icon: Bot },
+  { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [
@@ -33,6 +35,7 @@ const EMPLOYEE_NAV_ITEMS = [
   { name: "Performance", href: "/dashboard/employee/performance", icon: Target },
   { name: "Policies", href: "/dashboard/employee/policies", icon: Shield },
   { name: "AI HR", href: "/dashboard/employee/ai-assistant", icon: Bot },
+  { name: "Settings", href: "/dashboard/employee/settings", icon: Settings },
 ];
 
 export function TopNavbar({ 
@@ -49,7 +52,42 @@ export function TopNavbar({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [hasUnread, setHasUnread] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
   const notificationsRef = useRef<HTMLDivElement>(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
+  const filteredItems = navItems.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showSearchResults || filteredItems.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev < filteredItems.length - 1 ? prev + 1 : prev));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const selectedItem = filteredItems[selectedIndex];
+      if (selectedItem) {
+        router.push(selectedItem.href);
+        setShowSearchResults(false);
+        setSearchQuery("");
+      }
+    } else if (e.key === "Escape") {
+      setShowSearchResults(false);
+    }
+  };
 
   useEffect(() => {
     const isDark = document.documentElement.classList.contains("dark");
@@ -61,6 +99,9 @@ export function TopNavbar({
     function handleClickOutside(event: MouseEvent) {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setNotificationsOpen(false);
+      }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -105,11 +146,11 @@ export function TopNavbar({
     ? "HR Manager" 
     : "Employee";
 
-  const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
 
   return (
     <>
-      <header className="h-16 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-4 md:px-6 sticky top-0 z-10 transition-colors duration-200">
+      <header className="h-16 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 transition-colors duration-200">
         
         <div className="flex items-center gap-3 md:hidden">
           <button 
@@ -129,13 +170,55 @@ export function TopNavbar({
           </Link>
         </div>
 
-        <div className="flex-1 max-w-md relative hidden md:block">
+        <div className="flex-1 max-w-md relative hidden md:block" ref={searchRef}>
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
           <input 
             type="text"
-            placeholder="Search employees, documents, or actions..."
+            placeholder="Search pages and modules..."
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(true);
+              setSelectedIndex(0);
+            }}
+            onFocus={() => setShowSearchResults(true)}
+            onKeyDown={handleSearchKeyDown}
             className="w-full pl-9 pr-4 py-2 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#334155] rounded-lg text-sm text-[#111827] dark:text-[#F3F4F6] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all"
           />
+          
+          {showSearchResults && searchQuery && (
+            <div className="absolute top-full left-0 w-full mt-2 bg-white dark:bg-[#0F172A] border border-[#E5E7EB] dark:border-[#1E293B] shadow-xl rounded-xl z-50 overflow-hidden">
+              {filteredItems.length > 0 ? (
+                <div className="py-2">
+                  {filteredItems.map((item, index) => (
+                    <button
+                      key={item.name}
+                      onClick={() => {
+                        router.push(item.href);
+                        setShowSearchResults(false);
+                        setSearchQuery("");
+                      }}
+                      className={cn(
+                        "w-full text-left px-4 py-3 flex items-center gap-3 transition-colors",
+                        index === selectedIndex 
+                          ? "bg-[#F3F4F6] dark:bg-[#1E293B]" 
+                          : "hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50"
+                      )}
+                    >
+                      <item.icon className="w-4 h-4 text-[#6B7280] dark:text-[#9CA3AF]" />
+                      <span className="text-sm font-medium text-[#111827] dark:text-[#F3F4F6]">
+                        {item.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="p-4 text-sm text-center text-[#6B7280] dark:text-[#9CA3AF]">
+                  No pages found matching "{searchQuery}"
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 md:gap-4 ml-auto">
@@ -239,9 +322,7 @@ export function TopNavbar({
                 <User className="w-4 h-4 md:w-4 md:h-4" />
               )}
             </Link>
-            <form action={logout}>
-              <button className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline">Logout</button>
-            </form>
+            <button onClick={() => signOut({ callbackUrl: '/login' })} className="text-xs font-medium text-red-600 dark:text-red-400 hover:underline">Logout</button>
           </div>
         </div>
       </header>

@@ -1,11 +1,12 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function processChatQuery(message: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     return "I'm sorry, you must be logged in to access HR records.";

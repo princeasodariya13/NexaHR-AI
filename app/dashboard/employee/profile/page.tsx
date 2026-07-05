@@ -1,12 +1,13 @@
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { ProfileForm } from "./ProfileForm";
 import { User, Building, Briefcase, Mail, Calendar, Hash, ShieldCheck } from "lucide-react";
 
 export default async function EmployeeProfilePage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     redirect("/login");

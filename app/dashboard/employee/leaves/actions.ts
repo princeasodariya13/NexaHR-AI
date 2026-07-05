@@ -1,12 +1,13 @@
 "use server";
 
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 
 export async function applyLeave(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) {
     throw new Error("Unauthorized");
@@ -66,8 +67,8 @@ export async function applyLeave(formData: FormData) {
 }
 
 export async function deleteLeave(leaveId: string) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
   if (!user) throw new Error("Unauthorized");
 

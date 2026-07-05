@@ -1,14 +1,15 @@
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { SettingsClient } from "./SettingsClient";
 import { format } from "date-fns";
 
 export default async function EmployeeSettingsPage() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
-  if (error || !user) {
+  if (!user) {
     redirect('/login');
   }
 

@@ -1,14 +1,15 @@
 import { Sparkles } from "lucide-react";
 import { AiChatClient } from "./AiChatClient";
 import prisma from "@/lib/prisma";
-import { createClient } from "@/utils/supabase/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 
 export default async function AIAssistantPage() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const session = await getServerSession(authOptions);
+    const user = session?.user;
 
-  if (error || !user) {
+  if (!user) {
     redirect('/login');
   }
 
