@@ -173,6 +173,7 @@ model Company {
   payrolls       PayrollRun[]
   auditLogs      AuditLog[]
   policies       Policy[]
+  notifications  Notification[]
 }
 
 model Department {
@@ -216,6 +217,7 @@ model User {
   
   accounts      Account[]
   sessions      Session[]
+  notifications Notification[]
 
   @@index([companyId])
 }
@@ -500,4 +502,23 @@ model Policy {
   company       Company     @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   @@index([companyId, isActive])
+}
+
+model Notification {
+  id          String   @id @default(uuid()) @map("_id")
+  companyId   String
+  userId      String
+  title       String
+  message     String
+  type        String   // 'LEAVE', 'PAYROLL', 'SYSTEM', etc.
+  isRead      Boolean  @default(false)
+  link        String?
+  
+  createdAt   DateTime @default(now())
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([companyId])
 }

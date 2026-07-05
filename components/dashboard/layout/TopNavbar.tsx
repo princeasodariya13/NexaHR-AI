@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
+import { getNotifications, markAsRead } from "@/app/dashboard/notifications-actions";
 
 const ADMIN_NAV_ITEMS = [
   { name: "Overview", href: "/dashboard/admin", icon: LayoutDashboard },
@@ -50,10 +51,35 @@ export function TopNavbar({
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [hasUnread, setHasUnread] = useState(true);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const pathname = usePathname();
   const router = useRouter();
   const notificationsRef = useRef<HTMLDivElement>(null);
+  
+  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const hasUnread = unreadCount > 0;
+
+  useEffect(() => {
+    async function fetchNotifications() {
+      const res = await getNotifications();
+      if (res.data) setNotifications(res.data);
+    }
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = async () => {
+    await markAsRead();
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const handleMarkRead = async (id: string, link?: string) => {
+    await markAsRead(id);
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    if (link) router.push(link);
+    setNotificationsOpen(false);
+  };
   
   // Search state
   const [searchQuery, setSearchQuery] = useState("");
@@ -252,7 +278,7 @@ export function TopNavbar({
                   <h3 className="font-bold text-[#111827] dark:text-[#F3F4F6]">Notifications</h3>
                   {hasUnread && (
                     <button 
-                      onClick={() => setHasUnread(false)} 
+                      onClick={handleMarkAllRead} 
                       className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
                     >
                       Mark all read
@@ -260,44 +286,32 @@ export function TopNavbar({
                   )}
                 </div>
                 <div className="max-h-80 overflow-y-auto">
-                  {!hasUnread ? (
+                  {notifications.length === 0 ? (
                     <div className="p-8 text-center text-[#6B7280] dark:text-[#9CA3AF]">
                       <Bell className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                      <p className="text-sm">You are all caught up!</p>
+                      <p className="text-sm">You have no notifications.</p>
                     </div>
-                  ) : role === "EMPLOYEE" ? (
-                    <>
-                      <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
-                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> Leave Approved
-                        </p>
-                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Your leave request for next Friday has been approved.</p>
-                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">2 hours ago</p>
-                      </div>
-                      <div className="p-4 hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
-                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> Payroll Processed
-                        </p>
-                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Your salary slip for this month is ready to view.</p>
-                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">1 day ago</p>
-                      </div>
-                    </>
                   ) : (
                     <>
-                      <div className="p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
-                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> New Leave Request
-                        </p>
-                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">Sarah Jenkins has requested 2 days of sick leave.</p>
-                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">10 mins ago</p>
-                      </div>
-                      <div className="p-4 hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer" onClick={() => setHasUnread(false)}>
-                        <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
-                          <span className="w-2 h-2 rounded-full bg-blue-500"></span> System Update
-                        </p>
-                        <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1">NexaHR AI Copilot has been updated to v2.0.</p>
-                        <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">3 hours ago</p>
-                      </div>
+                      {notifications.map((notif: any) => (
+                        <div 
+                          key={notif.id}
+                          className={cn(
+                            "p-4 border-b border-[#E5E7EB] dark:border-[#1E293B] hover:bg-[#F8FAFC] dark:hover:bg-[#1E293B]/50 transition-colors cursor-pointer",
+                            !notif.isRead && "bg-[#F0F9FF] dark:bg-[#1E293B]/80"
+                          )} 
+                          onClick={() => handleMarkRead(notif.id, notif.link)}
+                        >
+                          <p className="text-sm font-semibold text-[#111827] dark:text-[#F3F4F6] flex items-center gap-2">
+                            {!notif.isRead && <span className="w-2 h-2 rounded-full bg-blue-500"></span>}
+                            {notif.title}
+                          </p>
+                          <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF] mt-1 line-clamp-2">{notif.message}</p>
+                          <p className="text-[10px] text-[#9CA3AF] dark:text-[#6B7280] mt-2">
+                            {new Date(notif.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
                     </>
                   )}
                 </div>

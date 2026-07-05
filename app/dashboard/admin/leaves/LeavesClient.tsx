@@ -153,10 +153,32 @@ export function LeavesClient({ stats, leaves }: LeavesClientProps) {
                         </button>
                       </div>
                     ) : (
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${leave.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
-                        }`}>
-                        {leave.status}
-                      </span>
+                      <div className="flex items-center justify-end gap-3">
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${leave.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'
+                          }`}>
+                          {leave.status}
+                        </span>
+                        {leave.status === 'REJECTED' && (
+                          <button
+                            onClick={() => handleUpdate(leave.id, 'APPROVED')}
+                            disabled={isPending}
+                            className="p-1.5 bg-gray-50 hover:bg-emerald-50 text-emerald-600 rounded-md transition-colors border border-gray-200 disabled:opacity-50"
+                            title="Change to Approved"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                        )}
+                        {leave.status === 'APPROVED' && (
+                          <button
+                            onClick={() => handleUpdate(leave.id, 'REJECTED')}
+                            disabled={isPending}
+                            className="p-1.5 bg-gray-50 hover:bg-red-50 text-red-600 rounded-md transition-colors border border-gray-200 disabled:opacity-50"
+                            title="Change to Rejected"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
