@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
+import { CreateJobModal } from "./CreateJobModal";
 
 export default async function RecruitmentPage() {
   const session = await getServerSession(authOptions);
@@ -98,10 +99,7 @@ export default async function RecruitmentPage() {
           <p className="text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] text-sm">Manage job postings, candidates, and interview pipelines.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-[#111827] dark:bg-[#F3F4F6] text-white dark:text-[#111827] hover:bg-[#1f2937] dark:hover:bg-[#E5E7EB] shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2">
-            <Briefcase className="w-4 h-4" />
-            Post New Job
-          </button>
+          <CreateJobModal />
         </div>
       </div>
 

@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { redirect } from "next/navigation";
 import { format } from "date-fns";
 import { VerifyDocumentButton } from "./VerifyDocumentButton";
+import { UploadDocumentModal } from "./UploadDocumentModal";
 
 export default async function DocumentsPage() {
   const session = await getServerSession(authOptions);
@@ -54,7 +55,8 @@ export default async function DocumentsPage() {
         employeeName: doc.employee ? `${doc.employee.firstName} ${doc.employee.lastName}` : "Company Wide",
         date: format(new Date(doc.createdAt), "MMM dd, yyyy"),
         size: "2.4 MB", // Mock size as we don't store size in DB currently
-        isVerified: doc.isVerified
+        isVerified: doc.isVerified,
+        fileUrl: doc.fileUrl
       }));
 
       if (totalCount > 0) isDemo = false;
@@ -92,10 +94,7 @@ export default async function DocumentsPage() {
           <p className="text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] text-sm">Securely manage policies, contracts, and employee records.</p>
         </div>
         <div className="flex items-center gap-3">
-          <button className="bg-[#111827] dark:bg-[#F3F4F6] text-white dark:text-[#111827] hover:bg-[#1f2937] dark:hover:bg-[#E5E7EB] shadow-sm rounded-xl px-4 py-2.5 text-sm font-semibold transition-all flex items-center justify-center gap-2">
-            <Upload className="w-4 h-4" />
-            Upload Document
-          </button>
+          <UploadDocumentModal />
         </div>
       </div>
 
@@ -174,9 +173,11 @@ export default async function DocumentsPage() {
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-3">
                       <VerifyDocumentButton documentId={doc.id} isVerified={doc.isVerified || false} />
-                      <button className="p-2 text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] hover:text-[#111827] dark:text-[#F3F4F6] hover:bg-[#E5E7EB] rounded-lg transition-colors opacity-0 group-hover:opacity-100">
-                        <Download className="w-4 h-4" />
-                      </button>
+                      {doc.fileUrl && doc.fileUrl !== "https://placeholder.url/doc" && (
+                        <a href={doc.fileUrl} target="_blank" rel="noreferrer" className="p-2 text-[#6B7280] dark:text-[#9CA3AF] hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors opacity-0 group-hover:opacity-100">
+                          <Download className="w-4 h-4" />
+                        </a>
+                      )}
                     </div>
                   </td>
                 </tr>

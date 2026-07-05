@@ -57,6 +57,27 @@ export async function applyLeave(formData: FormData) {
       }
     });
 
+    // Notify Admins
+    try {
+      const admins = await prisma.user.findMany({
+        where: { companyId: employee.companyId, role: { in: ['SUPER_ADMIN', 'COMPANY_ADMIN', 'HR_MANAGER'] } }
+      });
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map(admin => ({
+            companyId: employee.companyId,
+            userId: admin.id,
+            title: "New Leave Request",
+            message: `${employee.firstName} ${employee.lastName} has requested ${diffDays} day(s) of leave.`,
+            type: "LEAVE",
+            link: "/dashboard/admin/leaves"
+          }))
+        });
+      }
+    } catch (e) {
+      console.warn("Could not create notification for leave");
+    }
+
     revalidatePath('/dashboard', 'layout');
     
     return { success: true };
