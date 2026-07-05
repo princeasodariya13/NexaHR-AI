@@ -95,7 +95,7 @@ export async function uploadAdminDocument(formData: FormData) {
     }
 
     const title = formData.get("title") as string;
-    const type = formData.get("type") as string;
+    const type = formData.get("type") as any;
     const file = formData.get("file") as File;
 
     if (!title || !type || !file) {
