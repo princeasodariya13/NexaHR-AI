@@ -18,14 +18,26 @@ export function FeatureSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {FEATURES.map((feature, idx) => (
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "100px" }}
+          variants={{
+            hidden: { opacity: 0 },
+            show: {
+              opacity: 1,
+              transition: { staggerChildren: 0.05 }
+            }
+          }}
+        >
+          {FEATURES.map((feature) => (
             <motion.div
               key={feature.title}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.4, delay: idx * 0.05 }}
+              variants={{
+                hidden: { opacity: 0, scale: 0.95 },
+                show: { opacity: 1, scale: 1, transition: { duration: 0.4 } }
+              }}
               className="bg-white p-6 rounded-2xl border border-[#E5E7EB] shadow-sm hover:shadow-lg transition-all group overflow-hidden relative"
             >
               {/* Hover gradient background */}
@@ -42,7 +54,7 @@ export function FeatureSection() {
               </div>
             </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

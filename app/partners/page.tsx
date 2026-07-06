@@ -2,6 +2,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { SectionBadge } from "@/components/landing/SectionBadge";
 import { GradientButton } from "@/components/landing/GradientButton";
+import Link from "next/link";
 
 export default function PartnersPage() {
   return (
@@ -17,7 +18,9 @@ export default function PartnersPage() {
           <p className="text-lg md:text-xl text-[#6B7280] max-w-2xl leading-relaxed mb-8">
             Join our ecosystem of technology partners, consultants, and resellers to deliver next-generation HR solutions to your clients.
           </p>
-          <GradientButton>Apply to Partner Program</GradientButton>
+          <Link href="/contact">
+            <GradientButton>Apply to Partner Program</GradientButton>
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-20 text-center">

@@ -60,15 +60,15 @@ export default function ContactPage() {
             <div className="space-y-6 text-[#4B5563]">
               <div>
                 <h4 className="font-semibold text-[#111827] mb-1">Address</h4>
-                <p>123 Innovation Drive, Suite 500<br />San Francisco, CA 94105<br />United States</p>
+                <p>Near Ambavadi Circle<br />SG Highway<br />Ahmedabad-380015<br />Gujarat, India</p>
               </div>
               <div>
                 <h4 className="font-semibold text-[#111827] mb-1">Email</h4>
-                <p>sales@nexahrai.com<br />support@nexahrai.com</p>
+                <p>princeasodariyaofficial13@gmail.com <br />support@nexahrai.com</p>
               </div>
               <div>
                 <h4 className="font-semibold text-[#111827] mb-1">Phone</h4>
-                <p>+1 (800) 555-0198</p>
+                <p>+91 93134 71565</p>
               </div>
             </div>
           </div>
@@ -107,7 +107,7 @@ export default function ContactPage() {
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#111827]">Work Email</label>
-                    <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="abc@gmail.com" />
+                    <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full px-4 py-2 bg-white border border-[#E5E7EB] rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="support@nexahrai.com" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-sm font-medium text-[#111827]">Message</label>

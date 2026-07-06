@@ -2,6 +2,7 @@ import { Navbar } from "@/components/landing/Navbar";
 import { Footer } from "@/components/landing/Footer";
 import { SectionBadge } from "@/components/landing/SectionBadge";
 import { GradientButton } from "@/components/landing/GradientButton";
+import Link from "next/link";
 
 export default function CareersPage() {
   return (
@@ -30,7 +31,7 @@ export default function CareersPage() {
               { title: "Product Marketing Manager", dept: "Marketing", loc: "Remote", type: "Full-time" },
               { title: "Enterprise Account Executive", dept: "Sales", loc: "New York, NY", type: "Full-time" }
             ].map((job, i) => (
-              <div key={i} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white border border-[#E5E7EB] rounded-2xl hover:border-[#111827] transition-all hover:shadow-md cursor-pointer group">
+              <Link href="/contact" key={i} className="flex flex-col md:flex-row md:items-center justify-between p-6 bg-white border border-[#E5E7EB] rounded-2xl hover:border-[#111827] transition-all hover:shadow-md cursor-pointer group block">
                 <div>
                   <h3 className="text-xl font-bold text-[#111827] mb-2 group-hover:text-blue-600 transition-colors">{job.title}</h3>
                   <div className="flex items-center gap-4 text-sm text-[#6B7280]">
@@ -44,7 +45,7 @@ export default function CareersPage() {
                 <div className="mt-4 md:mt-0">
                   <span className="text-sm font-semibold text-[#111827] group-hover:underline">Apply Now &rarr;</span>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>

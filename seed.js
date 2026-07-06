@@ -40,9 +40,9 @@ async function main() {
         companyId,
         userId: user.id, // Linking to the admin user for simplicity
         employeeCode: "EMP-001",
-        firstName: "Michael",
-        lastName: "Scott",
-        workEmail: "michael.scott@nexahr.com",
+        firstName: "Amit",
+        lastName: "Sharma",
+        workEmail: "amit.sharma@nexahr.com",
         designation: "Regional Manager",
         joiningDate: new Date("2023-01-15"),
         status: "ACTIVE"
@@ -52,7 +52,7 @@ async function main() {
     // Create a dummy user record for emp2 so we can satisfy userId unique constraint
     const user2 = await prisma.user.create({
       data: {
-        email: "dwight.schrute@nexahr.com",
+        email: "vikram.singh@nexahr.com",
         companyId,
         role: "EMPLOYEE"
       }
@@ -63,9 +63,9 @@ async function main() {
         companyId,
         userId: user2.id,
         employeeCode: "EMP-002",
-        firstName: "Dwight",
-        lastName: "Schrute",
-        workEmail: "dwight.schrute@nexahr.com",
+        firstName: "Vikram",
+        lastName: "Singh",
+        workEmail: "vikram.singh@nexahr.com",
         designation: "Assistant to the Regional Manager",
         joiningDate: new Date("2023-02-01"),
         status: "ACTIVE"
@@ -119,9 +119,9 @@ async function main() {
     await prisma.candidate.create({
       data: {
         jobId: job.id,
-        firstName: "Jim",
-        lastName: "Halpert",
-        email: "jim@example.com",
+        firstName: "Karan",
+        lastName: "Patel",
+        email: "karan@example.com",
         status: "INTERVIEW_SCHEDULED",
         aiMatchScore: 85.5
       }

@@ -14,12 +14,17 @@ import { Footer } from "@/components/landing/Footer";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-[#111827] font-sans selection:bg-[#E5E7EB] selection:text-[#111827]">
-      {/* Dynamic background gradients - Light theme */}
-      <div className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#F8FAFC] blur-[100px]" />
-        <div className="absolute top-[30%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#F1F5F9] blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[20%] w-[50%] h-[50%] rounded-full bg-[#F8FAFC] blur-[120px]" />
-      </div>
+      {/* Optimized background: Replaced expensive CSS blurs with lightweight radial gradients */}
+      <div 
+        className="fixed inset-0 z-[-1] pointer-events-none overflow-hidden bg-white"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 0% 0%, #F8FAFC 0%, transparent 50%),
+            radial-gradient(circle at 100% 40%, #F1F5F9 0%, transparent 50%),
+            radial-gradient(circle at 30% 100%, #F8FAFC 0%, transparent 50%)
+          `
+        }}
+      />
 
       <Navbar />
       

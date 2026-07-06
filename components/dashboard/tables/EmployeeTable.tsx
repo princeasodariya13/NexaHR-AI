@@ -5,14 +5,6 @@ import { MoreHorizontal, Edit2, UserX, UserCheck, Shield, X, Loader2, Search, Fi
 import { cn } from "@/lib/utils";
 import { updateEmployeeRole, updateEmployeeStatus, deleteEmployee } from "@/app/dashboard/admin/employees/actions";
 
-// Dummy data for fallback
-export const DUMMY_EMPLOYEES = [
-  { id: "1", code: "EMP-001", name: "Sarah Jenkins", email: "sarah.j@acme.com", role: "Product Manager", department: "Product", status: "ACTIVE" },
-  { id: "2", code: "EMP-002", name: "Marcus Chen", email: "marcus.c@acme.com", role: "Senior Engineer", department: "Engineering", status: "ACTIVE" },
-  { id: "3", code: "EMP-003", name: "Elena Rodriguez", email: "elena.r@acme.com", role: "UX Designer", department: "Design", status: "ON_LEAVE" },
-  { id: "4", code: "EMP-004", name: "David Kim", email: "david.k@acme.com", role: "DevOps Engineer", department: "Engineering", status: "ACTIVE" },
-  { id: "5", code: "EMP-005", name: "Rachel Green", email: "rachel.g@acme.com", role: "HR Manager", department: "Human Resources", status: "ACTIVE" },
-];
 
 interface EmployeeData {
   id: string;
@@ -24,7 +16,7 @@ interface EmployeeData {
   status: string;
 }
 
-export function EmployeeTable({ employees = DUMMY_EMPLOYEES }: { employees?: EmployeeData[] }) {
+export function EmployeeTable({ employees = [] }: { employees?: EmployeeData[] }) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const tableRef = React.useRef<HTMLDivElement>(null);
 

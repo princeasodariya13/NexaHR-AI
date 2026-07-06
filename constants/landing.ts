@@ -178,17 +178,17 @@ export const PRICING_PLANS = [
 
 export const TESTIMONIALS = [
   {
-    name: "Sarah Jenkins",
+    name: "Priya Sharma",
     role: "HR Director @ TechNova",
     content: "NexaHR AI completely transformed how we manage our workforce. The AI assistant alone saves my team over 20 hours a week in answering repetitive policy questions."
   },
   {
-    name: "Michael Chen",
+    name: "Rahul Desai",
     role: "Founder & CEO @ CloudSync",
     content: "We moved from 4 different disconnected tools to just NexaHR AI. The payroll automation and real-time attendance insights gave us exactly the visibility we needed to scale."
   },
   {
-    name: "Elena Rodriguez",
+    name: "Anjali Verma",
     role: "Operations Head @ TalentFlow",
     content: "The design is incredible. Our employees actually enjoy using the portal, and the automated onboarding workflows make our new hires feel welcome from day one."
   }

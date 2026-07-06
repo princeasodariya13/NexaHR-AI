@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Bot, MessageSquare, Users, Code } from "lucide-react";
+import { Bot, MessageSquare, Users } from "lucide-react";
 
 export function Footer() {
   return (
@@ -20,14 +20,11 @@ export function Footer() {
               The intelligent, unified enterprise HRMS platform designed to automate operations and empower your workforce.
             </p>
             <div className="flex gap-4">
-              <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB] transition-all">
+              <Link href="/contact" className="w-10 h-10 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB] transition-all">
                 <MessageSquare className="w-4 h-4" />
-              </a>
+              </Link>
               <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB] transition-all">
                 <Users className="w-4 h-4" />
-              </a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full bg-[#F3F4F6] border border-[#E5E7EB] flex items-center justify-center text-[#6B7280] hover:text-[#111827] hover:bg-[#E5E7EB] transition-all">
-                <Code className="w-4 h-4" />
               </a>
             </div>
           </div>
