@@ -31,9 +31,6 @@ export default async function EmployeeLeavesPage() {
     pending: 0,
     rejected: 0
   };
-    pending: 0,
-    rejected: 0
-  };
   
   try {
     const dbUser = await prisma.user.findUnique({
@@ -44,10 +41,23 @@ export default async function EmployeeLeavesPage() {
     if (dbUser && dbUser.employee) {
       employee = dbUser.employee;
       
-      // Fetch leave requests and company leave types
       leaveTypes = await prisma.leaveType.findMany({
         where: { companyId: dbUser.companyId }
       });
+
+      if (leaveTypes.length === 0) {
+        // Auto-provision standard leave types if the company has none
+        await prisma.leaveType.createMany({
+          data: [
+            { companyId: dbUser.companyId, name: 'Casual Leave', annualQuota: 12, isPaid: true, carryForwardAllowed: false },
+            { companyId: dbUser.companyId, name: 'Sick Leave', annualQuota: 7, isPaid: true, carryForwardAllowed: false },
+            { companyId: dbUser.companyId, name: 'Earned Leave', annualQuota: 15, isPaid: true, carryForwardAllowed: true }
+          ]
+        });
+        leaveTypes = await prisma.leaveType.findMany({
+          where: { companyId: dbUser.companyId }
+        });
+      }
       
       stats.total = leaveTypes.reduce((acc, lt) => acc + lt.annualQuota, 0);
 

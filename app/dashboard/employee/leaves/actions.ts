@@ -88,10 +88,11 @@ export async function applyLeave(formData: FormData) {
 }
 
 export async function deleteLeave(leaveId: string) {
-  const session = await getServerSession(authOptions);
+  try {
+    const session = await getServerSession(authOptions);
     const user = session?.user;
 
-  if (!user) throw new Error("Unauthorized");
+    if (!user) throw new Error("Unauthorized");
 
     const dbUser = await prisma.user.findUnique({
       where: { id: user.id },
