@@ -4,7 +4,7 @@ import { useState } from "react";
 import { applyLeave } from "./actions";
 import { Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
 
-export function ApplyLeaveForm() {
+export function ApplyLeaveForm({ leaveTypes = [] }: { leaveTypes?: any[] }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -49,10 +49,13 @@ export function ApplyLeaveForm() {
           required
           className="w-full px-4 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-[#0F172A] text-gray-900 dark:text-white focus:bg-white dark:focus:bg-[#1E293B] focus:ring-2 focus:ring-[#111827] dark:focus:ring-white focus:border-transparent transition-all outline-none"
         >
-          <option value="Casual Leave">Casual Leave (CL)</option>
-          <option value="Sick Leave">Sick Leave (SL)</option>
-          <option value="Earned Leave">Earned Leave (EL)</option>
-          <option value="Unpaid Leave">Unpaid Leave</option>
+          {leaveTypes.length === 0 ? (
+            <option value="Unpaid Leave">Unpaid Leave (Fallback)</option>
+          ) : (
+            leaveTypes.map(lt => (
+              <option key={lt.id} value={lt.id}>{lt.name} (Quota: {lt.annualQuota})</option>
+            ))
+          )}
         </select>
       </div>
 

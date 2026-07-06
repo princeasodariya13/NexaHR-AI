@@ -93,13 +93,24 @@ export async function deleteLeave(leaveId: string) {
 
   if (!user) throw new Error("Unauthorized");
 
-  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
+      include: { employee: true }
+    });
+
+    if (!dbUser || !dbUser.employee) throw new Error("Employee not found");
+
     const leave = await prisma.leaveRequest.findUnique({
       where: { id: leaveId }
     });
 
     if (!leave || leave.status !== 'PENDING') {
       return { error: "Only pending leaves can be cancelled" };
+    }
+
+    // Security check: verify this leave belongs to the current employee
+    if (leave.employeeId !== dbUser.employee.id) {
+      return { error: "Access denied" };
     }
 
     await prisma.leaveRequest.delete({

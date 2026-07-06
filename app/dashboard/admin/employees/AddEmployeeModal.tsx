@@ -11,7 +11,8 @@ export function AddEmployeeModal() {
     firstName: "",
     lastName: "",
     email: "",
-    jobTitle: ""
+    jobTitle: "",
+    baseSalary: ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -24,6 +25,7 @@ export function AddEmployeeModal() {
     startTransition(async () => {
       const payload = {
         ...formData,
+        baseSalary: formData.baseSalary ? parseFloat(formData.baseSalary) : undefined,
         loginUrl: window.location.origin + '/login'
       };
 
@@ -32,7 +34,7 @@ export function AddEmployeeModal() {
         if (res.error === "DEMO_MODE_OFFLINE") {
           alert("Success! (Demo Mode): Your database is currently paused, so the employee cannot be permanently saved to the table. Please unpause Supabase to see real data updates.");
           setIsOpen(false);
-          setFormData({ firstName: "", lastName: "", email: "", jobTitle: "" });
+          setFormData({ firstName: "", lastName: "", email: "", jobTitle: "", baseSalary: "" });
         } else {
           alert(res.error);
         }
@@ -43,7 +45,7 @@ export function AddEmployeeModal() {
            alert("Employee added successfully, but the invitation email could not be sent.");
         }
         setIsOpen(false);
-        setFormData({ firstName: "", lastName: "", email: "", jobTitle: "" });
+        setFormData({ firstName: "", lastName: "", email: "", jobTitle: "", baseSalary: "" });
       }
     });
   };
@@ -134,6 +136,19 @@ export function AddEmployeeModal() {
                   <option value="Data Analyst">Data Analyst</option>
                   <option value="Customer Support">Customer Support</option>
                 </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold text-[#111827] dark:text-[#F3F4F6]">Base Salary (₹/month) <span className="text-[#9CA3AF] font-normal">(optional)</span></label>
+                <input 
+                  type="number" 
+                  min="0"
+                  value={formData.baseSalary}
+                  onChange={(e) => setFormData({...formData, baseSalary: e.target.value})}
+                  placeholder="e.g. 50000"
+                  className="w-full px-4 py-2.5 bg-[#F8FAFC] dark:bg-[#1E293B] border border-[#E5E7EB] dark:border-[#1E293B] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#111827]/20 focus:border-[#111827] transition-all text-[#111827] dark:text-[#F3F4F6]"
+                />
+                <p className="text-xs text-[#9CA3AF] pt-1">Used for accurate payroll calculation. Can be added later.</p>
               </div>
 
             </form>

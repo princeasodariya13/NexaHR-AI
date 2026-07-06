@@ -8,6 +8,9 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
+    // Disable Lenis on dashboard to prevent scrolling issues with fixed layouts and modals
+    if (pathname.startsWith('/dashboard')) return;
+
     const lenis = new Lenis({
       duration: 0.8,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -24,7 +27,6 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
 
     requestAnimationFrame(raf);
 
-    // Automatically recalculate scroll height when the DOM changes (e.g. results loading)
     const observer = new MutationObserver(() => {
       lenis.resize();
     });
@@ -40,7 +42,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       observer.disconnect();
       lenis.destroy();
     };
-  }, []);
+  }, [pathname]);
 
   return <>{children}</>;
 }

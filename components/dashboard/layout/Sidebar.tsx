@@ -16,21 +16,29 @@ import {
   Bot,
   User,
   Target,
-  Shield
+  Shield,
+  ShieldCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const ADMIN_NAV_ITEMS = [
-  { name: "Overview", href: "/dashboard/admin", icon: LayoutDashboard },
-  { name: "Employees", href: "/dashboard/admin/employees", icon: Users },
-  { name: "Attendance", href: "/dashboard/admin/attendance", icon: CalendarCheck },
-  { name: "Leaves", href: "/dashboard/admin/leaves", icon: CalendarOff },
-  { name: "Payroll", href: "/dashboard/admin/payroll", icon: Banknote },
-  { name: "Recruitment", href: "/dashboard/admin/recruitment", icon: Briefcase },
-  { name: "Documents", href: "/dashboard/admin/documents", icon: FileText },
-  { name: "Resume AI", href: "/dashboard/admin/resume-analyzer", icon: FileText },
-  { name: "AI Assistant", href: "/dashboard/admin/ai-assistant", icon: Bot },
+  { name: "Overview",     href: "/dashboard/admin",                icon: LayoutDashboard },
+  { name: "Employees",    href: "/dashboard/admin/employees",      icon: Users },
+  { name: "Attendance",   href: "/dashboard/admin/attendance",     icon: CalendarCheck },
+  { name: "Leaves",       href: "/dashboard/admin/leaves",         icon: CalendarOff },
+  { name: "Payroll",      href: "/dashboard/admin/payroll",        icon: Banknote },
+  { name: "Recruitment",  href: "/dashboard/admin/recruitment",    icon: Briefcase },
+  { name: "Documents",    href: "/dashboard/admin/documents",      icon: FileText },
+  { name: "Resume AI",    href: "/dashboard/admin/resume-analyzer",icon: FileText },
+  { name: "AI Assistant", href: "/dashboard/admin/ai-assistant",   icon: Bot },
 ];
+
+// Only shown to privileged admin roles
+const AUDIT_NAV_ITEM = {
+  name: "Audit Logs",
+  href: "/dashboard/admin/audit-logs",
+  icon: ShieldCheck,
+};
 
 const EMPLOYEE_NAV_ITEMS = [
   { name: "My Dashboard", href: "/dashboard/employee", icon: LayoutDashboard },
@@ -46,7 +54,12 @@ const EMPLOYEE_NAV_ITEMS = [
 
 export function Sidebar({ role = "SUPER_ADMIN" }: { role?: string }) {
   const pathname = usePathname();
-  const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : ADMIN_NAV_ITEMS;
+
+  const navItems = role === "EMPLOYEE" ? EMPLOYEE_NAV_ITEMS : [
+    ...ADMIN_NAV_ITEMS,
+    // Audit Logs only visible to privileged admin roles
+    ...(role === "SUPER_ADMIN" || role === "COMPANY_ADMIN" ? [AUDIT_NAV_ITEM] : []),
+  ];
 
   return (
     <aside className="hidden md:flex w-64 bg-white dark:bg-[#0F172A] border-r border-[#E5E7EB] dark:border-[#1E293B] flex-col h-screen sticky top-0 transition-colors duration-200 shrink-0">

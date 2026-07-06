@@ -158,7 +158,7 @@ model Company {
   employeeCount  Int       @default(0)
   timezone       String    @default("UTC")
   currency       String    @default("USD")
-  subscriptionId String?
+  subscription   Subscription?
   isActive       Boolean   @default(true)
   
   createdAt      DateTime  @default(now())
@@ -170,10 +170,33 @@ model Company {
   employees      Employee[]
   jobs           Job[]
   leaves         LeaveRequest[]
+  leaveTypes     LeaveType[]
   payrolls       PayrollRun[]
   auditLogs      AuditLog[]
   policies       Policy[]
   notifications  Notification[]
+}
+
+enum PlanTier {
+  STARTER
+  GROWTH
+  ENTERPRISE
+}
+
+model Subscription {
+  id                     String    @id @default(uuid()) @map("_id")
+  companyId              String    @unique
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?   @unique
+  planTier               PlanTier  @default(GROWTH) // Default to GROWTH for 14-day trial
+  status                 String    @default("trialing")
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean   @default(false)
+  
+  createdAt              DateTime  @default(now())
+  updatedAt              DateTime  @updatedAt
+
+  company                Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
 }
 
 model Department {
@@ -242,6 +265,11 @@ model Employee {
   workEmail        String
   personalEmail    String?
   phone            String?
+
+  // Salary configuration — null means "not yet set / to be backfilled"
+  baseSalary       Float?         // Monthly gross base salary (e.g. 50000.00)
+  allowancePercent Float?         // Allowances as % of baseSalary (default: 20%)
+  deductionPercent Float?         // Deductions as % of baseSalary (default: 12%)
   
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
@@ -295,7 +323,9 @@ model LeaveRequest {
   id            String      @id @default(uuid()) @map("_id")
   companyId     String
   employeeId    String
-  leaveTypeId   String
+  leaveTypeId   String?
+  leaveType     LeaveType?  @relation(fields: [leaveTypeId], references: [id], onDelete: SetNull)
+
   startDate     DateTime
   endDate       DateTime
   totalDays     Float
@@ -317,6 +347,24 @@ model LeaveRequest {
 // ------------------------------------------------------
 // PAYROLL MANAGEMENT
 // ------------------------------------------------------
+
+model LeaveType {
+  id                  String         @id @default(uuid()) @map("_id")
+  companyId           String
+  name                String         // e.g. "Casual Leave", "Sick Leave"
+  annualQuota         Int
+  carryForwardAllowed Boolean        @default(false)
+  isPaid              Boolean        @default(true)
+
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  company             Company        @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  leaveRequests       LeaveRequest[]
+
+  @@index([companyId])
+}
+
 
 model PayrollRun {
   id            String        @id @default(uuid()) @map("_id")

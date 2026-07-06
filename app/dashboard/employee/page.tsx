@@ -54,7 +54,12 @@ export default async function EmployeeDashboardPage() {
         }
       });
       
-      // Calculate Leave Balance (Assuming 24 days total allowance for demo)
+      // Calculate Leave Balance dynamically based on company LeaveTypes
+      const leaveTypes = await prisma.leaveType.findMany({
+        where: { companyId: dbUser.companyId }
+      });
+      const totalAnnualQuota = leaveTypes.reduce((acc, lt) => acc + lt.annualQuota, 0) || 0;
+
       const approvedLeaves = await prisma.leaveRequest.aggregate({
         where: {
           employeeId: employee.id,
@@ -65,7 +70,7 @@ export default async function EmployeeDashboardPage() {
         }
       });
       
-      leaveBalance = 24 - Number(approvedLeaves._sum.totalDays || 0);
+      leaveBalance = totalAnnualQuota - Number(approvedLeaves._sum.totalDays || 0);
 
       // Fetch Active Goals count
       try {

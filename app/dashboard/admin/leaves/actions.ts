@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { LeaveStatus } from '@prisma/client'
+import { logAudit } from '@/lib/auditLog';
 
 export async function updateLeaveStatus(leaveId: string, status: 'APPROVED' | 'REJECTED') {
   if (leaveId.length < 10) return { error: "Cannot modify demo data." }
@@ -42,6 +43,16 @@ export async function updateLeaveStatus(leaveId: string, status: 'APPROVED' | 'R
         console.warn("Could not create notification");
       }
     }
+
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'LEAVE',
+      action: status === 'APPROVED' ? 'APPROVE' : 'REJECT',
+      recordId: leaveId,
+      oldData: { status: 'PENDING' },
+      newData: { status, totalDays: leave.totalDays, leaveTypeId: leave.leaveTypeId },
+    });
 
     revalidatePath('/dashboard', 'layout')
     return { success: true }

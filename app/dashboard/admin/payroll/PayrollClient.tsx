@@ -57,8 +57,8 @@ export function PayrollClient({ stats, recentRuns, isDemo, employees }: PayrollC
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Payroll Management</h1>
-          <p className="text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] text-sm">Process monthly salaries and manage payslips.</p>
+          {/* <h1 className="text-2xl font-bold text-[#111827] dark:text-[#F3F4F6]">Payroll Management</h1> */}
+          {/* <p className="text-[#6B7280] dark:text-[#9CA3AF] dark:text-[#6B7280] text-sm">Process monthly salaries and manage payslips.</p> */}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {isDemo && (

@@ -24,9 +24,13 @@ export default async function EmployeeLeavesPage() {
   // Fetch employee record
   let employee = null;
   let leaveRequests: any[] = [];
+  let leaveTypes: any[] = [];
   let stats = {
-    total: 24,
+    total: 0,
     approved: 0,
+    pending: 0,
+    rejected: 0
+  };
     pending: 0,
     rejected: 0
   };
@@ -40,9 +44,16 @@ export default async function EmployeeLeavesPage() {
     if (dbUser && dbUser.employee) {
       employee = dbUser.employee;
       
-      // Fetch leave requests
+      // Fetch leave requests and company leave types
+      leaveTypes = await prisma.leaveType.findMany({
+        where: { companyId: dbUser.companyId }
+      });
+      
+      stats.total = leaveTypes.reduce((acc, lt) => acc + lt.annualQuota, 0);
+
       leaveRequests = await prisma.leaveRequest.findMany({
         where: { employeeId: employee.id },
+        include: { leaveType: true },
         orderBy: { createdAt: 'desc' }
       });
       
@@ -121,7 +132,7 @@ export default async function EmployeeLeavesPage() {
               <CalendarOff className="w-5 h-5" />
               Apply for Leave
             </h2>
-            <ApplyLeaveForm />
+            <ApplyLeaveForm leaveTypes={leaveTypes} />
           </div>
         </div>
 
@@ -151,7 +162,7 @@ export default async function EmployeeLeavesPage() {
                     {leaveRequests.map((req) => (
                       <tr key={req.id} className="border-b border-gray-100 dark:border-[#1E293B] last:border-0 hover:bg-gray-50/50 dark:hover:bg-[#1E293B]/50 transition-colors">
                         <td className="px-4 py-4 font-medium text-gray-900 dark:text-gray-200">
-                          {req.leaveTypeId}
+                          {req.leaveType?.name || req.leaveTypeId}
                         </td>
                         <td className="px-4 py-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                           {new Date(req.startDate).toLocaleDateString()} - {new Date(req.endDate).toLocaleDateString()}

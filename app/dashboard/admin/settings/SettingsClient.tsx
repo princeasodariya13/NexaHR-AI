@@ -7,9 +7,10 @@ import { updateCompanySettings, updateAdminProfile } from "./actions";
 type AdminSettingsProps = {
   company: { name: string; website: string | null } | null;
   employee: { firstName: string; lastName: string } | null;
+  leaveTypes: any[];
 };
 
-export function SettingsClient({ company, employee }: AdminSettingsProps) {
+export function SettingsClient({ company, employee, leaveTypes }: AdminSettingsProps) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [isPendingCompany, startTransitionCompany] = useTransition();
   const [isPendingProfile, startTransitionProfile] = useTransition();
@@ -71,11 +72,10 @@ export function SettingsClient({ company, employee }: AdminSettingsProps) {
       </div>
 
       {feedback && (
-        <div className={`p-4 rounded-xl border flex items-start gap-2 text-sm transition-all ${
-          feedback.type === "success" 
+        <div className={`p-4 rounded-xl border flex items-start gap-2 text-sm transition-all ${feedback.type === "success"
             ? "bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/50 text-emerald-800 dark:text-emerald-300"
             : "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300"
-        }`}>
+          }`}>
           {feedback.type === "success" ? (
             <CheckCircle2 className="w-5 h-5 mt-0.5 flex-shrink-0" />
           ) : (
@@ -183,6 +183,101 @@ export function SettingsClient({ company, employee }: AdminSettingsProps) {
           </button>
         </form>
       </div>
+
+      {/* Leave Types Management */}
+      <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-[#E5E7EB] dark:border-[#1E293B] shadow-sm p-6 space-y-4 transition-all">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-950/20 flex items-center justify-center text-purple-600 dark:text-purple-400">
+              <Building className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-[#111827] dark:text-[#F3F4F6]">Leave Policies</h3>
+              <p className="text-xs text-[#6B7280] dark:text-[#9CA3AF]">Manage company leave types and annual quotas.</p>
+            </div>
+          </div>
+
+          {leaveTypes.length === 0 && (
+            <button
+              onClick={() => {
+                import('./actions').then(m => m.seedDefaultLeaveTypes().then(res => {
+                  setFeedback(res.error ? { type: 'error', message: res.error } : { type: 'success', message: 'Seeded default leave types' });
+                }))
+              }}
+              className="text-xs bg-purple-100 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-200"
+            >
+              Seed Defaults
+            </button>
+          )}
+        </div>
+
+        <div className="pt-2 overflow-hidden border border-[#E5E7EB] dark:border-[#334155] rounded-xl">
+          <table className="w-full text-sm text-left">
+            <thead className="bg-[#F8FAFC] dark:bg-[#1E293B] text-[#6B7280]">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Name</th>
+                <th className="px-4 py-3 font-semibold">Annual Quota</th>
+                <th className="px-4 py-3 font-semibold">Type</th>
+                <th className="px-4 py-3 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E5E7EB] dark:divide-[#1E293B]">
+              {leaveTypes.length === 0 ? (
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">No leave types configured.</td></tr>
+              ) : (
+                leaveTypes.map((lt) => (
+                  <tr key={lt.id}>
+                    <td className="px-4 py-3 font-medium text-[#111827] dark:text-[#F3F4F6]">{lt.name}</td>
+                    <td className="px-4 py-3">{lt.annualQuota} days</td>
+                    <td className="px-4 py-3">{lt.isPaid ? 'Paid' : 'Unpaid'}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        onClick={() => {
+                          if (confirm('Delete this leave type?')) {
+                            import('./actions').then(m => m.deleteLeaveType(lt.id).then(res => {
+                              if (res.error) setFeedback({ type: 'error', message: res.error });
+                            }));
+                          }
+                        }}
+                        className="text-red-600 hover:underline text-xs"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <form
+          className="mt-4 flex flex-col md:flex-row gap-3 pt-4 border-t border-[#E5E7EB] dark:border-[#1E293B]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            const name = formData.get('name') as string;
+            const annualQuota = parseInt(formData.get('annualQuota') as string);
+            const isPaid = formData.get('isPaid') === 'on';
+
+            import('./actions').then(m => m.createLeaveType({ name, annualQuota, isPaid }).then(res => {
+              if (res.error) setFeedback({ type: 'error', message: res.error });
+              else {
+                setFeedback({ type: 'success', message: 'Leave type created' });
+                (e.target as HTMLFormElement).reset();
+              }
+            }));
+          }}
+        >
+          <input type="text" name="name" placeholder="Leave Name (e.g. Maternity)" required className="flex-1 px-3 py-2 border rounded-lg text-sm bg-transparent" />
+          <input type="number" name="annualQuota" placeholder="Days/Year" required min={0} className="w-32 px-3 py-2 border rounded-lg text-sm bg-transparent" />
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" name="isPaid" defaultChecked /> Paid
+          </label>
+          <button type="submit" className="bg-[#111827] text-white px-4 py-2 rounded-lg text-sm">Add</button>
+        </form>
+      </div>
+
     </div>
   );
 }

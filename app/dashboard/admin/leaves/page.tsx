@@ -51,7 +51,10 @@ async function LeavesData() {
     if (companyId) {
       const rawLeaves = await prisma.leaveRequest.findMany({
         where: { companyId },
-        include: { employee: { include: { department: true } } },
+        include: { 
+          employee: { include: { department: true } },
+          leaveType: true 
+        },
         orderBy: { createdAt: 'desc' }
       });
 
@@ -66,7 +69,7 @@ async function LeavesData() {
           employeeName: `${leave.employee.firstName} ${leave.employee.lastName}`,
           initials: `${leave.employee.firstName[0]}${leave.employee.lastName[0]}`,
           department: leave.employee.department?.name || 'General',
-          type: leave.leaveTypeId || 'GENERAL',
+          type: leave.leaveType?.name || leave.leaveTypeId || 'GENERAL',
           durationString: `${format(start, 'MMM d')} - ${format(end, 'MMM d')}`,
           days: diffDays,
           reason: leave.reason,

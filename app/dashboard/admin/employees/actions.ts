@@ -7,14 +7,15 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import bcrypt from "bcryptjs";
 import { EmployeeStatus } from '@prisma/client'
 import { headers } from 'next/headers'
+import { logAudit } from '@/lib/auditLog';
 
 async function getAppUrl() {
   try {
     const headersList = await headers();
     const origin = headersList.get('origin');
     if (origin) return origin;
-  } catch(e) {}
-  
+  } catch (e) { }
+
   if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
   if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
   if (process.env.VERCEL_PROJECT_PRODUCTION_URL) return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`;
@@ -36,7 +37,7 @@ export async function updateEmployeeRole(employeeId: string, newRole: string) {
 
     const employeeToUpdate = await prisma.employee.findUnique({ where: { id: employeeId } });
     const isSuperAdmin = dbUser.role === "SUPER_ADMIN";
-    
+
     if (!employeeToUpdate || (!isSuperAdmin && employeeToUpdate.companyId !== dbUser.companyId)) {
       throw new Error("Employee not found or access denied.");
     }
@@ -45,6 +46,16 @@ export async function updateEmployeeRole(employeeId: string, newRole: string) {
       where: { id: employeeId },
       data: { designation: newRole }
     })
+
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'EMPLOYEE',
+      action: 'UPDATE',
+      recordId: employeeId,
+      oldData: { designation: employeeToUpdate.designation },
+      newData: { designation: newRole },
+    });
 
     revalidatePath('/dashboard/admin/employees')
     return { success: true }
@@ -79,6 +90,16 @@ export async function updateEmployeeStatus(employeeId: string, status: string) {
       data: { status: status as EmployeeStatus }
     })
 
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'EMPLOYEE',
+      action: 'UPDATE',
+      recordId: employeeId,
+      oldData: { status: employeeToUpdate.status },
+      newData: { status },
+    });
+
     revalidatePath('/dashboard/admin/employees')
     return { success: true }
   } catch (error: any) {
@@ -91,20 +112,37 @@ export async function updateEmployeeStatus(employeeId: string, status: string) {
 
 import { sendEmployeeWelcomeEmail } from '@/lib/mail';
 
-export async function createEmployee(data: {
+import { z } from "zod";
+
+const createEmployeeSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(50),
+  lastName: z.string().min(1, "Last name is required").max(50),
+  email: z.string().email("Invalid email format"),
+  jobTitle: z.string().min(1, "Job title is required").max(100),
+  baseSalary: z.number().min(0).optional(),
+  loginUrl: z.string().url().optional(),
+});
+
+export async function createEmployee(rawData: {
   firstName: string;
   lastName: string;
   email: string;
   jobTitle: string;
+  baseSalary?: number;
   loginUrl?: string;
 }) {
   try {
+    const parsed = createEmployeeSchema.safeParse(rawData);
+    if (!parsed.success) {
+      return { error: parsed.error.errors[0].message };
+    }
+    const data = parsed.data;
     const session = await getServerSession(authOptions);
     const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
     let dbUser = await prisma.user.findUnique({ where: { id: user.id } })
-    
+
     // Auto-provision if the user signed up before the Prisma schema was fully integrated
     if (!dbUser) {
       const company = await prisma.company.create({
@@ -113,7 +151,7 @@ export async function createEmployee(data: {
           website: user.email?.split('@')[1] || "company.com"
         }
       })
-      
+
       dbUser = await prisma.user.create({
         data: {
           id: user.id,
@@ -124,12 +162,14 @@ export async function createEmployee(data: {
       })
     }
 
+    const empCount = await prisma.employee.count({ where: { companyId: dbUser.companyId } });
+
     // Generate a unique employee code robustly
     const lastEmployee = await prisma.employee.findFirst({
       where: { companyId: dbUser.companyId, employeeCode: { startsWith: 'EMP-' } },
       orderBy: { employeeCode: 'desc' }
     });
-    
+
     let nextNumber = 1;
     if (lastEmployee) {
       const lastNumber = parseInt(lastEmployee.employeeCode.replace('EMP-', ''), 10);
@@ -137,18 +177,17 @@ export async function createEmployee(data: {
         nextNumber = lastNumber + 1;
       } else {
         // Fallback if parsing fails
-        const count = await prisma.employee.count({ where: { companyId: dbUser.companyId } });
-        nextNumber = count + 100; // Jump ahead to avoid collisions
+        nextNumber = empCount + 100; // Jump ahead to avoid collisions
       }
     }
     const employeeCode = `EMP-${nextNumber.toString().padStart(3, '0')}`
 
     // Check if employee already exists
-    let employeeUser = await prisma.user.findUnique({ 
+    let employeeUser = await prisma.user.findUnique({
       where: { email: data.email },
       include: { employee: true }
     })
-    
+
     if (employeeUser && employeeUser.employee) {
       return { error: "An employee with this email address already exists in the system." }
     }
@@ -158,7 +197,7 @@ export async function createEmployee(data: {
     if (!targetUserId) {
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + "!";
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
-      
+
       const newUser = await prisma.user.upsert({
         where: { email: data.email },
         update: {
@@ -179,7 +218,7 @@ export async function createEmployee(data: {
       // If targetUserId already existed (User record exists but no Employee record)
       const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-4).toUpperCase() + "!";
       const hashedPassword = await bcrypt.hash(tempPassword, 10);
-      
+
       await prisma.user.update({
         where: { id: targetUserId },
         data: { password: hashedPassword }
@@ -188,7 +227,7 @@ export async function createEmployee(data: {
     }
 
     // 2. Create the Employee record
-    await prisma.employee.create({
+    const createdEmployee = await prisma.employee.create({
       data: {
         companyId: dbUser.companyId,
         userId: targetUserId,
@@ -198,16 +237,32 @@ export async function createEmployee(data: {
         designation: data.jobTitle,
         employeeCode: employeeCode,
         joiningDate: new Date(),
-        status: 'ACTIVE'
+        status: 'ACTIVE',
+        baseSalary: data.baseSalary ?? null,
       }
     })
+
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'EMPLOYEE',
+      action: 'CREATE',
+      recordId: createdEmployee.id,
+      newData: {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,        // work email — not a password
+        jobTitle: data.jobTitle,
+        employeeCode,
+      },
+    });
 
     let emailSent = false;
     if (data.loginUrl) { // loginUrl currently holds the temp password
       const appUrl = await getAppUrl();
       emailSent = await sendEmployeeWelcomeEmail(
-        data.email, 
-        data.firstName, 
+        data.email,
+        data.firstName,
         data.loginUrl, // tempPassword
         `${appUrl}/login`
       );
@@ -245,11 +300,11 @@ export async function deleteEmployee(employeeId: string) {
     const employeeToDelete = await prisma.employee.findUnique({
       where: { id: employeeId }
     })
-    
+
     const isSuperAdmin = dbUser.role === "SUPER_ADMIN";
 
     if (!employeeToDelete || (!isSuperAdmin && employeeToDelete.companyId !== dbUser.companyId)) {
-       return { error: "Employee not found or you don't have permission to delete them." }
+      return { error: "Employee not found or you don't have permission to delete them." }
     }
 
 
@@ -263,17 +318,31 @@ export async function deleteEmployee(employeeId: string) {
       prisma.employee.delete({ where: { id: employeeId } })
     ]);
 
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'EMPLOYEE',
+      action: 'DELETE',
+      recordId: employeeId,
+      oldData: {
+        firstName: employeeToDelete.firstName,
+        lastName: employeeToDelete.lastName,
+        employeeCode: employeeToDelete.employeeCode,
+        status: employeeToDelete.status,
+      },
+    });
+
     if (employeeToDelete.userId) {
-       try {
-         // Delete associated user, accounts, and sessions in a single transaction
-         await prisma.$transaction([
-           prisma.account.deleteMany({ where: { userId: employeeToDelete.userId } }),
-           prisma.session.deleteMany({ where: { userId: employeeToDelete.userId } }),
-           prisma.user.delete({ where: { id: employeeToDelete.userId } })
-         ]);
-       } catch(e) {
-          console.warn("Could not delete user record, it might be referenced elsewhere.");
-       }
+      try {
+        // Delete associated user, accounts, and sessions in a single transaction
+        await prisma.$transaction([
+          prisma.account.deleteMany({ where: { userId: employeeToDelete.userId } }),
+          prisma.session.deleteMany({ where: { userId: employeeToDelete.userId } }),
+          prisma.user.delete({ where: { id: employeeToDelete.userId } })
+        ]);
+      } catch (e) {
+        console.warn("Could not delete user record, it might be referenced elsewhere.");
+      }
     }
 
     revalidatePath('/dashboard/admin')

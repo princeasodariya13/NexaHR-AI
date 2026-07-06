@@ -4,6 +4,19 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Ratelimit } from "@upstash/ratelimit";
+import { Redis } from "@upstash/redis";
+
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+
+const copilotRateLimit = redisUrl && redisToken
+  ? new Ratelimit({
+    redis: new Redis({ url: redisUrl, token: redisToken }),
+    limiter: Ratelimit.slidingWindow(20, "1 m"),
+    analytics: true,
+  })
+  : null;
 
 export async function sendMessageToAI(message: string) {
   try {
@@ -11,25 +24,55 @@ export async function sendMessageToAI(message: string) {
     const user = session?.user;
     if (!user) throw new Error("Unauthorized")
 
+    if (copilotRateLimit) {
+      const { success } = await copilotRateLimit.limit(`copilot_${user.id}`);
+      if (!success) throw new Error("Rate limit exceeded. Please wait before sending more messages.");
+    }
+
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) throw new Error("User not found")
     const companyId = dbUser.companyId
 
-    // Fetch live context from the database
-    const activeEmployees = await prisma.employee.count({ where: { companyId, status: 'ACTIVE' } });
-    const totalEmployees = await prisma.employee.count({ where: { companyId } });
-    
+    // Free for all
+
+    // --- Fetch ALL employees with status breakdown ---
+    const allEmployees = await prisma.employee.findMany({
+      where: { companyId },
+      select: {
+        firstName: true,
+        lastName: true,
+        designation: true,
+        status: true,
+      }
+    });
+
+    const totalEmployees = allEmployees.length;
+    const activeEmployees = allEmployees.filter(e => e.status === 'ACTIVE').length;
+    const inactiveEmployees = allEmployees.filter(e => e.status === 'INACTIVE').length;
+    const onLeaveEmployees = allEmployees.filter(e => e.status === 'ON_LEAVE').length;
+    const probationEmployees = allEmployees.filter(e => e.status === 'PROBATION').length;
+
+    // Build a short name list for the AI (max 30 to keep prompt size reasonable)
+    const employeeList = allEmployees
+      .slice(0, 30)
+      .map(e => `${e.firstName} ${e.lastName} (${e.designation ?? 'No Title'}, ${e.status})`)
+      .join("; ");
+
     const currentMonth = new Date().getMonth() + 1;
     const currentYear = new Date().getFullYear();
     const currentRun = await prisma.payrollRun.findFirst({
       where: { companyId, month: currentMonth, year: currentYear }
     });
-    const payrollCostStr = currentRun ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(currentRun.totalAmount)) : "Not generated yet";
+    const payrollCostStr = currentRun
+      ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(Number(currentRun.totalAmount))
+      : "Not generated yet";
     const payrollStatus = currentRun ? currentRun.status : "N/A";
 
     const openJobs = await prisma.job.count({ where: { companyId, isActive: true } });
     const totalCandidates = await prisma.candidate.count({ where: { job: { companyId } } });
-    const interviewing = await prisma.candidate.count({ where: { job: { companyId }, status: { in: ['INTERVIEW_SCHEDULED', 'INTERVIEWED'] } } });
+    const interviewing = await prisma.candidate.count({
+      where: { job: { companyId }, status: { in: ['INTERVIEW_SCHEDULED', 'INTERVIEWED'] } }
+    });
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -49,18 +92,23 @@ export async function sendMessageToAI(message: string) {
     if (!apiKey) {
       throw new Error("GEMINI_API_KEY is missing from environment variables.");
     }
-    
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-    // Build Context-Aware Prompt
+    // Build Context-Aware Prompt with full employee breakdown
     const prompt = `
       You are an intelligent AI HR Assistant for NexaHR, speaking to a Company Admin.
       You must answer their questions accurately using the real-time company data provided below. Do not make up numbers.
       If the user asks something outside the scope of this data or HR in general, politely decline to answer.
 
       Real-Time Company Data Context:
-      - Employees: ${activeEmployees} active employees out of ${totalEmployees} total registered.
+      - Total Employees in Company: ${totalEmployees}
+        - Active: ${activeEmployees}
+        - Inactive: ${inactiveEmployees}
+        - On Leave: ${onLeaveEmployees}
+        - On Probation: ${probationEmployees}
+      - Employee List (up to 30): ${employeeList || "No employees found"}
       - Payroll (This Month): Total Cost is ${payrollCostStr}. Status is ${payrollStatus}.
       - Recruitment: ${openJobs} Open Jobs, ${totalCandidates} Total Candidates, ${interviewing} currently interviewing.
       - Attendance (Today): ${presentCount} employees present today.
@@ -69,7 +117,7 @@ export async function sendMessageToAI(message: string) {
 
       User Question: "${message}"
       
-      Respond directly, conversationally, and concisely. Use markdown for emphasis if needed.
+      Respond directly, conversationally, and concisely. Use markdown for emphasis if needed. Always use the numbers above — never guess.
     `;
 
     const result = await model.generateContent(prompt);
@@ -77,7 +125,7 @@ export async function sendMessageToAI(message: string) {
 
   } catch (error: any) {
     console.error("AI Assistant Error:", error);
-    
+
     // Fallback if Gemini fails or is not configured
     return "I'm having trouble connecting to my AI brain right now. Please check if your GEMINI_API_KEY is valid and correctly set in your environment variables.";
   }

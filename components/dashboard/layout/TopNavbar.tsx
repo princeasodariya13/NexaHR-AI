@@ -60,13 +60,36 @@ export function TopNavbar({
   const hasUnread = unreadCount > 0;
 
   useEffect(() => {
+    // 1. Initial load
     async function fetchNotifications() {
       const res = await getNotifications();
       if (res.data) setNotifications(res.data);
     }
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // Poll every 30s
-    return () => clearInterval(interval);
+
+    // 2. Listen for real-time pushes from RealtimeProvider (SSE)
+    const handleNewNotifs = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const incomingNotifs = customEvent.detail;
+      
+      setNotifications((prev) => {
+        // Prevent duplicates
+        const existingIds = new Set(prev.map(n => n.id));
+        const uniqueNew = incomingNotifs.filter((n: any) => !existingIds.has(n.id));
+        
+        if (uniqueNew.length === 0) return prev;
+        
+        // Add new notifications to the top and sort by newest first
+        return [...uniqueNew, ...prev].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+      });
+    };
+
+    window.addEventListener('new-notifications', handleNewNotifs);
+    return () => {
+      window.removeEventListener('new-notifications', handleNewNotifs);
+    };
   }, []);
 
   const handleMarkAllRead = async () => {
@@ -176,7 +199,7 @@ export function TopNavbar({
 
   return (
     <>
-      <header className="h-16 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-4 md:px-6 sticky top-0 z-40 transition-colors duration-200">
+      <header className="h-16 shrink-0 bg-white dark:bg-[#0F172A] border-b border-[#E5E7EB] dark:border-[#1E293B] flex items-center justify-between px-4 md:px-6 z-40 transition-colors duration-200">
         
         <div className="flex items-center gap-3 md:hidden">
           <button 

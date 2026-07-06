@@ -5,6 +5,7 @@ import prisma from '@/lib/prisma'
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { PayrollStatus } from '@prisma/client'
+import { logAudit } from '@/lib/auditLog';
 
 export async function runPayrollAction() {
   try {
@@ -15,14 +16,20 @@ export async function runPayrollAction() {
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) throw new Error("User not found")
 
-    // In a real system, you would calculate total salaries for all employees
-    // For demo purposes, we will mock a calculation based on active employees
-    const activeEmployees = await prisma.employee.count({
-      where: { companyId: dbUser.companyId, status: 'ACTIVE' }
+    // Fetch all active employees with their salary config
+    const activeEmployees = await prisma.employee.findMany({
+      where: { companyId: dbUser.companyId, status: 'ACTIVE' },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        baseSalary: true,
+        allowancePercent: true,
+        deductionPercent: true,
+      }
     })
     
-    // If no employees, we can't run payroll (or it's 0)
-    if (activeEmployees === 0) {
+    if (activeEmployees.length === 0) {
       return { error: "Cannot run payroll: No active employees found in the database. (Add employees first!)" }
     }
 
@@ -42,18 +49,77 @@ export async function runPayrollAction() {
       return { error: "Payroll has already been processed for this month." }
     }
 
-    // Mock average salary calculation in INR
-    const totalAmount = activeEmployees * 50000.00 // ₹50,000 avg salary
+    // --- Real per-employee calculation ---
+    // Defaults: 20% allowance, 12% deduction (PF+tax placeholder)
+    const DEFAULT_ALLOWANCE_PCT = 0.20
+    const DEFAULT_DEDUCTION_PCT = 0.12
+    const FALLBACK_BASE_SALARY  = 30000 // Used only if an employee has no baseSalary set
 
-    await prisma.payrollRun.create({
-      data: {
-        companyId: dbUser.companyId,
+    type PayslipInput = {
+      employeeId: string
+      basicSalary: number
+      allowances: number
+      deductions: number
+      netSalary: number
+    }
+
+    const payslipData: PayslipInput[] = activeEmployees.map((emp) => {
+      const base       = emp.baseSalary ?? FALLBACK_BASE_SALARY
+      const allowPct   = (emp.allowancePercent ?? DEFAULT_ALLOWANCE_PCT * 100) / 100
+      const deductPct  = (emp.deductionPercent ?? DEFAULT_DEDUCTION_PCT * 100) / 100
+      const allowances = parseFloat((base * allowPct).toFixed(2))
+      const deductions = parseFloat((base * deductPct).toFixed(2))
+      const netSalary  = parseFloat((base + allowances - deductions).toFixed(2))
+
+      return {
+        employeeId: emp.id,
+        basicSalary: base,
+        allowances,
+        deductions,
+        netSalary,
+      }
+    })
+
+    const totalAmount = parseFloat(
+      payslipData.reduce((sum, p) => sum + p.netSalary, 0).toFixed(2)
+    )
+
+    // Create the PayrollRun and all Payslips in one transaction
+    let createdRunId = "";
+    await prisma.$transaction(async (tx) => {
+      const payrollRun = await tx.payrollRun.create({
+        data: {
+          companyId: dbUser.companyId,
+          month: currentMonth,
+          year: currentYear,
+          totalAmount,
+          status: 'PAID'
+        }
+      })
+      createdRunId = payrollRun.id;
+
+      await tx.payslip.createMany({
+        data: payslipData.map((p) => ({
+          payrollRunId: payrollRun.id,
+          ...p,
+        }))
+      })
+    })
+
+    await logAudit({
+      companyId: dbUser.companyId,
+      userId: user.id,
+      module: 'PAYROLL',
+      action: 'CREATE',
+      recordId: createdRunId,
+      newData: {
         month: currentMonth,
         year: currentYear,
         totalAmount,
-        status: 'PAID'
-      }
-    })
+        employeeCount: activeEmployees.length,
+        status: 'PAID',
+      },
+    });
 
     revalidatePath('/dashboard/admin/payroll')
     return { success: true }
@@ -71,6 +137,12 @@ export async function addIndividualPayrollAction(employeeId: string, amount: num
 
     const dbUser = await prisma.user.findUnique({ where: { id: user.id } })
     if (!dbUser) throw new Error("User not found")
+
+    // Security check: verify this employee belongs to the user's company
+    const employee = await prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee || employee.companyId !== dbUser.companyId) {
+      throw new Error("Employee not found or access denied.");
+    }
 
     const currentMonth = new Date().getMonth() + 1
     const currentYear = new Date().getFullYear()
