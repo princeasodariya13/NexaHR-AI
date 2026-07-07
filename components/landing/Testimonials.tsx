@@ -7,13 +7,13 @@ import { Quote, Star } from "lucide-react";
 
 export function Testimonials() {
   return (
-    <section className="py-16 md:py-24 bg-white relative overflow-hidden">
+    <section className="py-24 bg-white relative overflow-hidden">
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[40%] bg-[#F8FAFC] rounded-full blur-[120px] pointer-events-none" />
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
           <SectionBadge className="mb-4">Customer Success</SectionBadge>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.15] text-[#111827]">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-[#111827]">
             Loved by <span className="text-gradient">HR Leaders</span>
           </h2>
         </div>
@@ -26,7 +26,7 @@ export function Testimonials() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
-              className="bg-white p-8 rounded-[2rem] border border-[#E5E7EB] shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 relative"
+              className="bg-white p-8 rounded-3xl border border-[#E5E7EB] shadow-sm hover:shadow-md transition-shadow relative"
             >
               <Quote className="absolute top-6 right-6 w-10 h-10 text-[#F3F4F6]" />
               <div className="flex gap-1 mb-6">

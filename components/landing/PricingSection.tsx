@@ -10,11 +10,11 @@ import { cn } from "@/lib/utils";
 
 export function PricingSection() {
   return (
-    <section className="py-16 md:py-24 bg-[#F8FAFC] relative border-t border-[#E5E7EB]" id="pricing">
+    <section className="py-24 bg-[#F8FAFC] relative border-t border-[#E5E7EB]" id="pricing">
       <div className="container mx-auto px-4 md:px-6">
         <div className="flex flex-col items-center text-center max-w-3xl mx-auto mb-16">
           <SectionBadge className="mb-4">Transparent Pricing</SectionBadge>
-          <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.15] text-[#111827]">
+          <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-[#111827]">
             Scale Without <span className="text-gradient">Limits</span>
           </h2>
           <p className="text-lg text-[#6B7280]">
@@ -31,10 +31,10 @@ export function PricingSection() {
               viewport={{ once: true }}
               transition={{ duration: 0.5, delay: idx * 0.1 }}
               className={cn(
-                "relative bg-white rounded-[2rem] p-8 border flex flex-col h-full transition-all duration-300 hover:-translate-y-1",
+                "relative bg-white rounded-3xl p-8 border flex flex-col h-full transition-shadow hover:shadow-xl",
                 plan.popular 
-                  ? "border-[#111827] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] md:-mt-4 md:mb-4 ring-1 ring-[#111827] hover:shadow-[0_25px_50px_-12px_rgba(0,0,0,0.15)]" 
-                  : "border-[#E5E7EB] shadow-sm hover:shadow-xl"
+                  ? "border-[#111827] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] md:-mt-4 md:mb-4 ring-1 ring-[#111827]" 
+                  : "border-[#E5E7EB] shadow-sm"
               )}
             >
               {plan.popular && (
