@@ -36,7 +36,7 @@ export function AIAssistantSection() {
   }, []);
 
   return (
-    <section className="py-24 bg-[#F8FAFC] relative overflow-hidden border-y border-[#E5E7EB]" id="ai">
+    <section className="py-16 md:py-24 bg-[#F8FAFC] relative overflow-hidden border-y border-[#E5E7EB]" id="ai">
       <div className="absolute top-0 right-0 w-[50%] h-[50%] bg-white rounded-full blur-[100px] pointer-events-none" />
       
       <div className="container mx-auto px-4 md:px-6 relative z-10">
@@ -121,7 +121,7 @@ export function AIAssistantSection() {
               <Sparkles className="w-4 h-4 mr-2" /> 
               Generative AI Built-In
             </SectionBadge>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-[#111827]">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.15] text-[#111827]">
               Meet Your <span className="text-gradient">AI HR Copilot</span>
             </h2>
             <p className="text-lg text-[#6B7280] mb-8">

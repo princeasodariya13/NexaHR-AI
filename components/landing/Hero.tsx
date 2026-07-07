@@ -8,7 +8,7 @@ import { CheckCircle2, TrendingUp, Users, Calendar, DollarSign, Sparkles } from 
 
 export function Hero() {
   return (
-    <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden bg-white">
+    <section className="relative pt-28 pb-16 md:pt-48 md:pb-32 overflow-hidden bg-white">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <div className="flex flex-col items-center text-center max-w-4xl mx-auto mb-16">
           <motion.div
@@ -26,9 +26,9 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-tight text-[#111827]"
+            className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-6 leading-[1.1] text-[#111827]"
           >
-            Run Your Entire Workforce with <span className="text-[#6B7280]">AI-Powered HR</span>
+            Run Your Entire Workforce with <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600">AI-Powered HR</span>
           </motion.h1>
           
           <motion.p
@@ -76,10 +76,10 @@ export function Hero() {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
-          className="relative mx-auto max-w-5xl animate-float"
+          className="relative mx-auto max-w-5xl animate-float px-2 md:px-0"
         >
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent z-10 top-1/2" />
-          <div className="bg-white rounded-2xl p-2 md:p-4 border border-[#E5E7EB] shadow-[0_20px_40px_-15px_rgba(0,0,0,0.05)] relative z-0">
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent z-10 top-1/2 pointer-events-none" />
+          <div className="bg-white rounded-2xl md:rounded-3xl p-3 md:p-5 border border-[#E5E7EB] shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] relative z-0">
             {/* Fake Mac Header */}
             <div className="flex items-center gap-2 px-3 pb-3 pt-1 border-b border-[#E5E7EB] mb-4">
               <div className="w-3 h-3 rounded-full bg-[#E5E7EB]" />

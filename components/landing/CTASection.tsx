@@ -6,19 +6,19 @@ import { GradientButton } from "./GradientButton";
 
 export function CTASection() {
   return (
-    <section className="py-24 relative overflow-hidden bg-white">
+    <section className="py-16 md:py-24 relative overflow-hidden bg-white">
       <div className="container mx-auto px-4 md:px-6 relative z-10">
         <motion.div 
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.7 }}
-          className="bg-[#F8FAFC] rounded-[2.5rem] p-10 md:p-20 text-center relative overflow-hidden border border-[#E5E7EB] shadow-sm"
+          className="bg-[#F8FAFC] rounded-3xl md:rounded-[2.5rem] p-8 md:p-20 text-center relative overflow-hidden border border-[#E5E7EB] shadow-sm"
         >
           <div className="absolute inset-0 bg-gradient-to-b from-white to-transparent pointer-events-none opacity-50" />
           
           <div className="relative z-10 max-w-3xl mx-auto">
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 text-[#111827]">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.15] text-[#111827]">
               Ready to Upgrade Your <span className="text-gradient">HR Operations?</span>
             </h2>
             <p className="text-lg md:text-xl text-[#6B7280] mb-10">

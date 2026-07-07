@@ -82,35 +82,49 @@ export function Navbar() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="absolute top-full left-0 right-0 bg-white border-b border-[#E5E7EB] p-4 md:hidden flex flex-col gap-4 shadow-xl"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 bg-white/95 backdrop-blur-xl pt-24 px-6 pb-6 flex flex-col md:hidden overflow-y-auto"
           >
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.name}
-                href={link.href}
-                onClick={() => setMobileMenuOpen(false)}
-                className="text-base font-medium text-[#111827] p-2 hover:bg-[#F3F4F6] rounded-md"
-              >
-                {link.name}
-              </Link>
-            ))}
-            <div className="h-px w-full bg-[#E5E7EB] my-2" />
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-6 flex-1">
+              {NAV_LINKS.map((link, i) => (
+                <motion.div
+                  key={link.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                >
+                  <Link
+                    href={link.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="text-2xl font-semibold tracking-tight text-[#111827] flex items-center justify-between group"
+                  >
+                    {link.name}
+                    <span className="text-transparent group-hover:text-[#6B7280] transition-colors">→</span >
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+            
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="mt-auto flex flex-col gap-4 pt-8 border-t border-[#E5E7EB]"
+            >
               <Link
                 href="/login"
-                className="text-center text-base font-medium p-2 border border-[#E5E7EB] rounded-md hover:bg-[#F3F4F6] text-[#111827]"
+                className="w-full text-center text-lg font-medium p-3 rounded-xl border border-[#E5E7EB] hover:bg-[#F3F4F6] text-[#111827] transition-all"
               >
                 Login
               </Link>
               <Link href="/signup">
-                <GradientButton variant="primary" className="w-full">
+                <GradientButton variant="primary" className="w-full py-3 text-lg">
                   Get Started
                 </GradientButton>
               </Link>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

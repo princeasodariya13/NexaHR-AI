@@ -18,7 +18,7 @@ const SOLUTIONS = [
 
 export function SolutionSection() {
   return (
-    <section className="py-24 bg-[#F8FAFC] relative overflow-hidden border-y border-[#E5E7EB]" id="solutions">
+    <section className="py-16 md:py-24 bg-[#F8FAFC] relative overflow-hidden border-y border-[#E5E7EB]" id="solutions">
       {/* Decorative gradient */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[60%] rounded-full bg-white blur-[100px] z-0" />
       
@@ -32,7 +32,7 @@ export function SolutionSection() {
             transition={{ duration: 0.7 }}
           >
             <SectionBadge className="mb-6">The NexaHR AI Solution</SectionBadge>
-            <h2 className="text-3xl md:text-5xl font-bold tracking-tight mb-6 leading-tight text-[#111827]">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 leading-[1.15] text-[#111827]">
               A Unified Platform for <br/><span className="text-gradient">Modern Workforces</span>
             </h2>
             <p className="text-lg text-[#6B7280] mb-8">
@@ -81,7 +81,7 @@ export function SolutionSection() {
                 </div>
                 
                 {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] hover:shadow-sm transition-all">
+                  <div key={i} className="flex items-center justify-between p-4 rounded-xl bg-[#F8FAFC] border border-[#E5E7EB] hover:shadow-md hover:-translate-y-0.5 transition-all duration-300 cursor-default">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center font-bold text-[#0F172A]">
                         0{i}
