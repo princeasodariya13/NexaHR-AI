@@ -49,7 +49,7 @@ export async function sendMessageToAI(message: string) {
     const totalEmployees = allEmployees.length;
     const activeEmployees = allEmployees.filter(e => e.status === 'ACTIVE').length;
     const inactiveEmployees = allEmployees.filter(e => e.status === 'INACTIVE').length;
-    const onLeaveEmployees = allEmployees.filter(e => e.status === 'ON_LEAVE').length;
+    const onLeaveEmployees = 0; // Derived from LeaveRequests in a full implementation
     const probationEmployees = allEmployees.filter(e => e.status === 'PROBATION').length;
 
     // Build a short name list for the AI (max 30 to keep prompt size reasonable)

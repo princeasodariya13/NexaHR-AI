@@ -25,7 +25,7 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/auth/")) {
     if (authRateLimit) {
       // Use IP for auth rate limiting
-      const ip = request.ip ?? request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+      const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
       const { success } = await authRateLimit.limit(`auth_${ip}`);
       if (!success) {
         return new NextResponse("Too Many Requests - Try again later.", { status: 429 });

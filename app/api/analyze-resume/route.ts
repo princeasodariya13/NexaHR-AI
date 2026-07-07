@@ -23,7 +23,10 @@ import { z } from "zod";
 const resumeSchema = z.object({
   resumeText: z.string().optional(),
   jobDescription: z.string().optional(),
-  fileData: z.string().optional()
+  fileData: z.object({
+    base64: z.string(),
+    mimeType: z.string()
+  }).optional()
 }).refine(data => data.resumeText || data.fileData, {
   message: "Resume text or file is required",
   path: ["resumeText"]
@@ -37,7 +40,7 @@ export async function POST(req: NextRequest) {
 
     // ── Rate Limiting ──
     if (aiRateLimit) {
-      const identifier = token?.id ? `resume_${token.id}` : `resume_ip_${req.ip ?? "127.0.0.1"}`;
+      const identifier = token?.id ? `resume_${token.id}` : `resume_ip_${req.headers.get("x-forwarded-for") ?? "127.0.0.1"}`;
 
       const { success } = await aiRateLimit.limit(identifier);
       if (!success) {
@@ -48,11 +51,9 @@ export async function POST(req: NextRequest) {
     const rawJson = await req.json();
     const parsed = resumeSchema.safeParse(rawJson);
     if (!parsed.success) {
-      return NextResponse.json({ error: parsed.error.errors[0].message }, { status: 400 });
+      return NextResponse.json({ error: parsed.error.issues[0].message }, { status: 400 });
     }
     const { resumeText, jobDescription, fileData } = parsed.data;
-    return NextResponse.json({ error: "Resume text or file is required" }, { status: 400 });
-  }
 
     const apiKey = process.env.GEMINI_API_KEY;
 

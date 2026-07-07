@@ -134,7 +134,7 @@ export async function createEmployee(rawData: {
   try {
     const parsed = createEmployeeSchema.safeParse(rawData);
     if (!parsed.success) {
-      return { error: parsed.error.errors[0].message };
+      return { error: parsed.error.issues[0].message };
     }
     const data = parsed.data;
     const session = await getServerSession(authOptions);
