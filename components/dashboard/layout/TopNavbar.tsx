@@ -23,7 +23,6 @@ const ADMIN_NAV_ITEMS = [
   { name: "Documents", href: "/dashboard/admin/documents", icon: FileText },
   { name: "Resume AI", href: "/dashboard/admin/resume-analyzer", icon: Bot },
   { name: "AI Assistant", href: "/dashboard/admin/ai-assistant", icon: Bot },
-  { name: "Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
 const EMPLOYEE_NAV_ITEMS = [
@@ -36,7 +35,6 @@ const EMPLOYEE_NAV_ITEMS = [
   { name: "Performance", href: "/dashboard/employee/performance", icon: Target },
   { name: "Policies", href: "/dashboard/employee/policies", icon: Shield },
   { name: "AI HR", href: "/dashboard/employee/ai-assistant", icon: Bot },
-  { name: "Settings", href: "/dashboard/employee/settings", icon: Settings },
 ];
 
 export function TopNavbar({ 
