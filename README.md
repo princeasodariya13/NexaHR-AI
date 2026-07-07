@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# NexaHR AI - Enterprise Human Resource Management System
 
-## Getting Started
+NexaHR AI is a comprehensive, modern, and AI-powered Enterprise Human Resource Management System (HRMS) built with Next.js, Prisma, and MongoDB. It aims to streamline HR operations, payroll processing, leave management, employee onboarding, recruitment, and more with an intelligent AI assistant layer.
 
-First, run the development server:
+## 🚀 Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+*   **Multi-Tenant Architecture**: Robust company and tenant management supporting different subscription tiers.
+*   **Role-Based Access Control (RBAC)**: Fine-grained access control with specialized dashboards for Admin, HR, Manager, and Employee roles.
+*   **AI-Powered Recruitment**: Resume parsing, candidate matching, and automated job applicant scoring using Google Gemini AI.
+*   **Employee Management**: Complete employee lifecycle management, document verification, and performance goals.
+*   **Leave & Attendance**: Configurable leave policies, leave application workflows, and daily attendance tracking.
+*   **Payroll Processing**: Dynamic salary calculations, basic pay, allowances, deductions, and automatic payslip generation.
+*   **Secure Authentication**: NextAuth integration for Google OAuth and Credentials-based login with Edge rate-limiting via Upstash Redis.
+*   **Billing & Subscriptions**: Stripe integration for Growth and Enterprise subscription tiers.
+*   **Real-time Notifications & Audit Logs**: Full traceability of actions and real-time alerts for leave approvals and payroll updates.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ Technology Stack
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+*   **Framework:** [Next.js](https://nextjs.org/) (App Router, Server Actions)
+*   **Database:** MongoDB
+*   **ORM:** [Prisma](https://www.prisma.io/)
+*   **Authentication:** NextAuth.js
+*   **Styling:** Tailwind CSS, Framer Motion
+*   **AI Integration:** Google Generative AI (Gemini)
+*   **Rate Limiting:** Upstash Redis
+*   **Payments:** Stripe
+*   **Emails:** Nodemailer (SMTP)
+*   **Testing:** Vitest & Playwright
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📦 Getting Started
 
-## Learn More
+### Prerequisites
 
-To learn more about Next.js, take a look at the following resources:
+*   Node.js (v24.x recommended)
+*   MongoDB Cluster (e.g., MongoDB Atlas)
+*   Upstash Redis Account
+*   Google Cloud Console (for OAuth & Gemini APIs)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Installation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1.  **Clone the repository:**
+    ```bash
+    git clone https://github.com/your-username/nexahr.git
+    cd nexahr
+    ```
 
-## Deploy on Vercel
+2.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+3.  **Configure Environment Variables:**
+    Copy the example environment file and populate it with your credentials:
+    ```bash
+    cp .env.example .env.local
+    ```
+    *Ensure you fill out the `MONGO_URI`, `NEXTAUTH_SECRET`, `GEMINI_API_KEY`, and `UPSTASH_REDIS_REST_URL`.*
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+4.  **Database Setup:**
+    Generate the Prisma client:
+    ```bash
+    npx prisma generate
+    ```
+
+5.  **Seed the Database (Optional):**
+    If you want to populate your database with dummy data and a master admin account, run:
+    ```bash
+    node seed.js
+    ```
+
+6.  **Run the Development Server:**
+    ```bash
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## 🧪 Testing
+
+NexaHR AI includes a suite of unit tests and end-to-end (E2E) tests to ensure robust functionality.
+
+*   **Run Unit Tests:** `npm run test`
+*   **Run E2E Tests:** `npm run test:e2e`
+
+## 📁 Documentation
+
+For an in-depth look at the vision, architecture, and feature specification, please check the Product Requirements Document (PRD) located in the `/docs/PRD` directory.
+
+## 📄 License
+
+This project is proprietary and intended for Enterprise use.
